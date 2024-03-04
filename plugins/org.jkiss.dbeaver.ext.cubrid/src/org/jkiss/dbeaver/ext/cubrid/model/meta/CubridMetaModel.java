@@ -23,6 +23,7 @@ import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridSequence;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridSynonym;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTable;
+import org.jkiss.dbeaver.ext.cubrid.model.CubridTrigger;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridUser;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridView;
 import org.jkiss.dbeaver.ext.generic.model.*;
@@ -34,6 +35,7 @@ import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCConstants;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
+import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -202,5 +204,82 @@ public class CubridMetaModel extends GenericMetaModel
         String name = JDBCUtils.safeGetStringTrimmed(dbResult, "synonym_name");
         String description = JDBCUtils.safeGetString(dbResult, "comment");
         return new CubridSynonym(container, name, description, dbResult);
+    }
+
+    @Override
+    public boolean supportsDatabaseTriggers(@NotNull GenericDataSource dataSource)
+    {
+        return true;
+    }
+
+    @Override
+    public boolean supportsTriggers(@NotNull GenericDataSource dataSource)
+    {
+        return true;
+    }
+
+    @Override
+    public JDBCStatement prepareTableTriggersLoadStatement(
+            @NotNull JDBCSession session,
+            @NotNull GenericStructContainer container,
+            @Nullable GenericTableBase table)
+            throws SQLException
+    {
+        String sql = "select t1.*, t2.*, owner.name from db_trigger t1 join db_trig t2 \n"
+                + "on t1.name = t2.trigger_name where owner.name = ? \n"
+                + (table != null ? "and target_class_name = ?" : "");
+        final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
+        dbStat.setString(1, container.getName());
+        if (table != null) {
+            dbStat.setString(2, table.getName());
+        }
+        return dbStat;
+    }
+
+    @Override
+    public CubridTrigger createTableTriggerImpl(
+            @NotNull JDBCSession session,
+            @NotNull GenericStructContainer container,
+            @NotNull GenericTableBase table,
+            String triggerName,
+            @NotNull JDBCResultSet dbResult)
+            throws DBException
+    {
+        String name = JDBCUtils.safeGetString(dbResult, "name");
+        String description = JDBCUtils.safeGetString(dbResult, "comment");
+        return new CubridTrigger(table, name, description, dbResult);
+    }
+
+    @Override
+    public JDBCStatement prepareContainerTriggersLoadStatement(
+            @NotNull JDBCSession session,
+            @Nullable GenericStructContainer container)
+            throws SQLException
+    {
+        String sql = "select t1.*, t2.*, owner.name from db_trigger t1 join db_trig t2 \n"
+                + "on t1.name = t2.trigger_name where owner.name = ? \n";
+        final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
+        dbStat.setString(1, container.getName());
+        return dbStat;
+    }
+
+    @Override
+    public CubridTrigger createContainerTriggerImpl(
+            @NotNull GenericStructContainer container,
+            @NotNull JDBCResultSet dbResult)
+            throws DBException
+    {
+        String name = JDBCUtils.safeGetString(dbResult, "name");
+        String description = JDBCUtils.safeGetString(dbResult, "comment");
+        String tableName = JDBCUtils.safeGetString(dbResult, "target_class_name");
+        DBRProgressMonitor monitor = dbResult.getSession().getProgressMonitor();
+        CubridTable cubridTable = null;
+        for (GenericTableBase table: container.getTables(monitor)){
+            if (table.getName().equals(tableName)) {
+                cubridTable = (CubridTable) table;
+                break;
+            }
+        }
+        return new CubridTrigger(cubridTable, name, description, dbResult);
     }
 }

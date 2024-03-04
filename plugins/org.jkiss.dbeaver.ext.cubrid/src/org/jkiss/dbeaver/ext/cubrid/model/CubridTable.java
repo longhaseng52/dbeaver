@@ -24,16 +24,20 @@ import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
 import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
 import org.jkiss.dbeaver.ext.generic.model.GenericTable;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableIndex;
+import org.jkiss.dbeaver.ext.generic.model.GenericTrigger;
+import org.jkiss.dbeaver.ext.generic.model.TableTriggerCache;
 import org.jkiss.dbeaver.model.DBPEvaluationContext;
 import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
+import org.jkiss.dbeaver.model.meta.Association;
 import org.jkiss.dbeaver.model.meta.IPropertyValueListProvider;
 import org.jkiss.dbeaver.model.meta.Property;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.struct.DBSObject;
 
 import java.util.Collection;
+import java.util.List;
 
 public class CubridTable extends GenericTable
 {
@@ -64,10 +68,22 @@ public class CubridTable extends GenericTable
         return (CubridUser) super.getContainer();
     }
 
+    public boolean supportsTrigger()
+    {
+        return ((CubridUser) this.getContainer()).supportsTrigger();
+    }
+
     public Collection<? extends GenericTableIndex> getIndexes(DBRProgressMonitor monitor)
             throws DBException
     {
         return getParent().getCubridIndexCache().getObjects(monitor, getContainer(), this);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public List<CubridTrigger> getTriggers(@NotNull DBRProgressMonitor monitor) throws DBException
+    {
+        return (List<CubridTrigger>) super.getTriggers(monitor);
     }
 
     @Nullable
