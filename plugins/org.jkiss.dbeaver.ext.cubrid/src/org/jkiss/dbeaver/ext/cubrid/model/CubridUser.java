@@ -86,6 +86,11 @@ public class CubridUser extends GenericSchema
         return this.getDataSource().getContainer().getNavigatorSettings().isShowSystemObjects();
     }
 
+    public boolean supportsSynonym()
+    {
+        return ((CubridDataSource) this.getDataSource()).getSupportMultiSchema();
+    }
+
     public CubridIndexCache getCubridIndexCache()
     {
         return cubridIndexCache;
