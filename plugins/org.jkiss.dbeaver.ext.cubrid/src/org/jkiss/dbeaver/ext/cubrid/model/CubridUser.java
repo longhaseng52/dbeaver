@@ -152,7 +152,7 @@ public class CubridUser extends GenericSchema
     public List<GenericTableIndex> getIndexes(DBRProgressMonitor monitor) throws DBException
     {
         cacheIndexes(monitor);
-        return cubridIndexCache.getObjects(monitor, this, null);
+        return cubridIndexCache.getAllObjects(monitor, this);
     }
 
     private void cacheIndexes(DBRProgressMonitor monitor) throws DBException

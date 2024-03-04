@@ -24,12 +24,20 @@ import org.jkiss.dbeaver.ext.generic.model.GenericDataSource;
 import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.dpi.DPIContainer;
+import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
+import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
+import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
+import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.struct.DBSDataType;
 
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +45,8 @@ public class CubridDataSource extends GenericDataSource
 {
     private final CubridMetaModel metaModel;
     private boolean supportMultiSchema;
+    private ArrayList<CubridCharset> charsets;
+    private Map<String, CubridCollation> collations;
 
     public CubridDataSource(DBRProgressMonitor monitor, DBPDataSourceContainer container, CubridMetaModel metaModel)
             throws DBException
@@ -81,6 +91,16 @@ public class CubridDataSource extends GenericDataSource
         return metaModel;
     }
 
+    public Collection<CubridCharset> getCharsets()
+    {
+        return charsets;
+    }
+
+    public CubridCollation getCollation(String name)
+    {
+        return collations.get(name);
+    }
+
     @Override
     public Collection<? extends DBSDataType> getDataTypes(DBRProgressMonitor monitor) throws DBException
     {
@@ -91,10 +111,72 @@ public class CubridDataSource extends GenericDataSource
         return types.values();
     }
 
+    public CubridCharset getCharset(String name)
+    {
+        for (CubridCharset charset : charsets) {
+            if (charset.getName().equals(name)) {
+                return charset;
+            }
+        }
+        return null;
+    }
+
+    public ArrayList<String> getCollations()
+    {
+        ArrayList<String> collationList = new ArrayList<String>(collations.keySet());
+        return collationList;
+    }
+
+    public void loadCharsets(DBRProgressMonitor monitor) throws DBException
+    {
+        charsets = new ArrayList<>();
+        try (JDBCSession session = DBUtils.openMetaSession(monitor, container, "Load charsets")) {
+            String sql = "select * from db_charset";
+            final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
+            JDBCResultSet dbResult = dbStat.executeQuery();
+            try {
+                while (dbResult.next()) {
+                    CubridCharset charset = new CubridCharset(this, dbResult);
+                    charsets.add(charset);
+	            }
+	        } finally {
+	             dbStat.close();
+	        }
+        } catch (SQLException e) {
+            throw new DBException("Load charsets failed", e);
+        }
+        charsets.sort(DBUtils.<CubridCharset>nameComparator());
+    }
+
+    public void loadCollations(DBRProgressMonitor monitor) throws DBException
+    {
+        collations = new LinkedHashMap<>();
+        try (JDBCSession session = DBUtils.openMetaSession(monitor, container, "Load collations")) {
+            String sql = "SHOW COLLATION";
+            final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
+            JDBCResultSet dbResult = dbStat.executeQuery();
+            try {
+                while (dbResult.next()) {
+                    String charsetName = JDBCUtils.safeGetString(dbResult, "charset");
+                    CubridCharset charset = getCharset(charsetName);
+                    CubridCollation collation = new CubridCollation(charset, dbResult);
+                    collations.put(collation.getName(), collation);
+                    charset.addCollation(collation);
+	            }
+            } finally {
+                dbStat.close();
+            }
+        } catch (SQLException e) {
+            throw new DBException("Load collations failed", e);
+        }
+    }
+
     @Override
     public void initialize(@NotNull DBRProgressMonitor monitor) throws DBException
     {
         super.initialize(monitor);
+        loadCharsets(monitor);
+        loadCollations(monitor);
     }
 
     public boolean getSupportMultiSchema()

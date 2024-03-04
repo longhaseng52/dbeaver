@@ -26,6 +26,7 @@ import org.jkiss.dbeaver.ext.cubrid.model.CubridProcedure;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridSequence;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridSynonym;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTable;
+import org.jkiss.dbeaver.ext.cubrid.model.CubridTableColumn;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTrigger;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridUser;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridView;
@@ -40,6 +41,7 @@ import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCConstants;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
 import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
 
 import java.sql.SQLException;
@@ -72,15 +74,18 @@ public class CubridMetaModel extends GenericMetaModel
             final JDBCPreparedStatement dbStat = session.prepareStatement("select * from db_user");
             dbStat.executeStatement();
             JDBCResultSet dbResult = dbStat.getResultSet();
-
-            while (dbResult.next()) {
-                String name = JDBCUtils.safeGetStringTrimmed(dbResult, "name");
-                String description = JDBCUtils.safeGetStringTrimmed(dbResult, "comment");
-                CubridUser user = new CubridUser(dataSource, name, description);
-                users.add(user);
+            try {
+                while (dbResult.next()) {
+                    String name = JDBCUtils.safeGetStringTrimmed(dbResult, "name");
+                    String description = JDBCUtils.safeGetStringTrimmed(dbResult, "comment");
+                    CubridUser user = new CubridUser(dataSource, name, description);
+                    users.add(user);
+	            }
+            } finally {
+                dbStat.close();
             }
         } catch (SQLException e) {
-        	log.error("Cannot load user", e);
+            log.error("Cannot load user", e);
         }
         return users;
     }
@@ -95,8 +100,8 @@ public class CubridMetaModel extends GenericMetaModel
     {
         String sql = "select a.*,a.class_name as TABLE_NAME, case when class_type = 'CLASS' then 'TABLE' \r\n"
                 + "when class_type = 'VCLASS' then 'VIEW' end as TABLE_TYPE, \r\n"
-                + "b.current_val from db_class a LEFT JOIN db_serial b on \r\n"
-                + "a.class_name = b.class_name "
+                + "a.comment as REMARKS, b.current_val from db_class a LEFT JOIN \r\n"
+                + "db_serial b on a.class_name = b.class_name "
                 + "where a.owner_name = ?";
 
         final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
@@ -111,7 +116,9 @@ public class CubridMetaModel extends GenericMetaModel
             @Nullable GenericTableBase forTable)
             throws SQLException
     {
-        return session.getMetaData().getColumns(null, null, this.getTableOrViewName(forTable), null).getSourceStatement();
+        String sql = "show full columns from " + getTableOrViewName(forTable);
+        final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
+        return dbStat;
     }
 
     @Override
@@ -121,7 +128,46 @@ public class CubridMetaModel extends GenericMetaModel
             @Nullable GenericTableBase forTable)
             throws SQLException, DBException
     {
-        return session.getMetaData().getPrimaryKeys(null, null, this.getTableOrViewName(forTable)).getSourceStatement();
+        CubridTable table = (CubridTable) forTable;
+        String sql = "select *, t1.index_name as PK_NAME from db_index t1 join db_index_key t2 \n"
+                + "on t1.index_name = t2.index_name where is_unique = 'YES' and t1.class_name = ? \n"
+                + (table.getDataSource().getSupportMultiSchema() ? "and t1.owner_name = ?" : "");
+        final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
+        dbStat.setString(1, table.getName());
+        if(table.getDataSource().getSupportMultiSchema()) {
+            dbStat.setString(2, table.getSchema().getName());
+        }
+        return dbStat;
+    }
+
+    @Override
+    public GenericTableConstraintColumn[] createConstraintColumnsImpl(
+            JDBCSession session,
+            GenericTableBase parent,
+            GenericUniqueKey object,
+            GenericMetaObject pkObject,
+            JDBCResultSet dbResult)
+            throws DBException
+    {
+        String name = JDBCUtils.safeGetStringTrimmed(dbResult, "key_attr_name");
+        Integer keyOrder = JDBCUtils.safeGetInteger(dbResult, "key_order") + 1;
+        GenericTableColumn tableColumn = parent.getAttribute(session.getProgressMonitor(), name);
+        return new GenericTableConstraintColumn[] {
+              new GenericTableConstraintColumn(object, tableColumn, keyOrder) };
+    }
+
+    @Override
+    public DBSEntityConstraintType getUniqueConstraintType(JDBCResultSet dbResult) throws DBException
+    {
+        String isUnique = JDBCUtils.safeGetString(dbResult, "is_unique");
+        String isPrimary = JDBCUtils.safeGetString(dbResult, "is_primary_key");
+        if(isPrimary.equals("YES")) {
+            return DBSEntityConstraintType.PRIMARY_KEY;
+        } else if (isUnique.equals("YES")) {
+            return DBSEntityConstraintType.UNIQUE_KEY;
+        } else {
+            return null;
+        }
     }
 
     @Override
@@ -158,6 +204,41 @@ public class CubridMetaModel extends GenericMetaModel
             return new CubridView(container, tableName, tableType, dbResult);
         }
         return new CubridTable(container, tableName, tableType, dbResult);
+    }
+
+    public boolean isTableCommentEditable()
+    {
+        return true;
+    }
+
+    public boolean isTableColumnCommentEditable()
+    {
+        return true;
+    }
+
+    @Override
+    public GenericTableColumn createTableColumnImpl(
+            @NotNull DBRProgressMonitor monitor,
+            @Nullable JDBCResultSet dbResult,
+            @NotNull GenericTableBase table,
+            String columnName,
+            String typeName,
+            int valueType,
+            int sourceType,
+            int ordinalPos,
+            long columnSize,
+            long charLength,
+            Integer scale,
+            Integer precision,
+            int radix,
+            boolean notNull,
+            String remarks,
+            String defaultValue,
+            boolean autoIncrement,
+            boolean autoGenerated)
+            throws DBException
+    {
+        return new CubridTableColumn(table, dbResult);
     }
 
     @Override
