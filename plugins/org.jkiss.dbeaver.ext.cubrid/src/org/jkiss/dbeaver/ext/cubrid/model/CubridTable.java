@@ -59,10 +59,15 @@ public class CubridTable extends GenericTable
         return (CubridDataSource) super.getDataSource();
     }
 
+    public CubridUser getParent()
+    {
+        return (CubridUser) super.getContainer();
+    }
+
     public Collection<? extends GenericTableIndex> getIndexes(DBRProgressMonitor monitor)
             throws DBException
     {
-        return this.getDataSource().getObjectContainer().getCubridIndexCache().getObjects(monitor, getContainer(), this);
+        return getParent().getCubridIndexCache().getObjects(monitor, getContainer(), this);
     }
 
     @Nullable
@@ -96,7 +101,7 @@ public class CubridTable extends GenericTable
     @Override
     public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException
     {
-        getDataSource().getObjectContainer().getCubridIndexCache().clearObjectCache(this);
+        getParent().getCubridIndexCache().clearObjectCache(this);
         return super.refreshObject(monitor);
     }
 
