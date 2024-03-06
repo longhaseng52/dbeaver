@@ -21,7 +21,6 @@ import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.impl.jdbc.struct.JDBCTableColumn.ColumnTypeNameListProvider;
 import org.jkiss.dbeaver.model.meta.Property;
 
 public class CubridTableColumn extends GenericTableColumn
@@ -30,15 +29,9 @@ public class CubridTableColumn extends GenericTableColumn
     {
         super(table);
         if (dbResult != null) {
-        	long columnSize = 0;
             typeName = JDBCUtils.safeGetString(dbResult, "Type");
-            if (typeName != null && typeName.contains("(")) {
-                columnSize = Long.parseLong(typeName.replaceAll("[^0-9]", ""));
-                typeName = typeName.split("\\(")[0];
-            }
             setName(JDBCUtils.safeGetString(dbResult, "Field"));
-            setTypeName(typeName);
-            setMaxLength(columnSize);
+            setFullTypeName(typeName);
             setRequired(JDBCUtils.safeGetString(dbResult, "Null").equals("NO"));
             setDescription(JDBCUtils.safeGetString(dbResult, "Comment"));
             setDefaultValue(JDBCUtils.safeGetString(dbResult, "Default"));
