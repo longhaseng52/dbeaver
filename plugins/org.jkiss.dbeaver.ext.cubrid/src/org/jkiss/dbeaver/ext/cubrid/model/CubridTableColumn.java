@@ -21,6 +21,7 @@ import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
+import org.jkiss.dbeaver.model.impl.jdbc.struct.JDBCTableColumn.ColumnTypeNameListProvider;
 import org.jkiss.dbeaver.model.meta.Property;
 
 public class CubridTableColumn extends GenericTableColumn
@@ -47,7 +48,7 @@ public class CubridTableColumn extends GenericTableColumn
     }
 
     @Override
-    @Property(viewable = true, editable = true, updatable = true, order = 20)
+    @Property(viewable = true, editable = true, updatable = true, order = 20, listProvider = ColumnTypeNameListProvider.class)
     public String getTypeName()
     {
         return super.getTypeName();
