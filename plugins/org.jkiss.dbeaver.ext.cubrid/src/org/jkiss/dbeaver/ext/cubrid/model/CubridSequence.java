@@ -28,9 +28,14 @@ public class CubridSequence extends GenericSequence
     private Number cyclic;
     private Number cachedNum;
 
-    public CubridSequence(GenericStructContainer container, String name, String description, Number lastValue,
-                          Number minValue, Number maxValue, Number incrementBy, JDBCResultSet dbResult)
-    {
+    public CubridSequence(GenericStructContainer container,
+            String name,
+            String description,
+            Number lastValue,
+            Number minValue,
+            Number maxValue,
+            Number incrementBy,
+            JDBCResultSet dbResult) {
         super(container, name, description, lastValue, minValue, maxValue, incrementBy);
         this.owner = JDBCUtils.safeGetString(dbResult, "owner.name");
         this.cyclic = JDBCUtils.safeGetInteger(dbResult, "cyclic");
@@ -38,20 +43,17 @@ public class CubridSequence extends GenericSequence
     }
 
     @Property(viewable = true, order = 2)
-    public String getOwner()
-    {
+    public String getOwner() {
         return owner;
     }
 
     @Property(viewable = true, order = 7)
-    public Number getCyclic()
-    {
+    public Number getCyclic() {
         return cyclic;
     }
 
     @Property(viewable = true, order = 8)
-    public Number getCachedNum()
-    {
+    public Number getCachedNum() {
         return cachedNum;
     }
 }

@@ -49,25 +49,21 @@ public class CubridSQLFormatter
     String token;
     String lcToken;
 
-    public CubridSQLFormatter(String sql)
-    {
+    public CubridSQLFormatter(String sql) {
         this.tokens = new StringTokenizer(sql, "()+*/-=<>'`\"[], \n\r\f\t", true);
     }
 
-    public CubridSQLFormatter setInitialString(String initial)
-    {
+    public CubridSQLFormatter setInitialString(String initial) {
         this.initial = initial;
         return this;
     }
 
-    public CubridSQLFormatter setIndentString(String indent)
-    {
+    public CubridSQLFormatter setIndentString(String indent) {
         this.indentString = indent;
         return this;
     }
 
-    public String format()
-    {
+    public String format() {
         this.result.append(this.initial);
 
         while (this.tokens.hasMoreTokens()) {
@@ -125,8 +121,22 @@ public class CubridSQLFormatter
         return this.result.toString();
     }
 
-    private void commaAfterOn()
-    {
+    public static String join(String separator, String[] strings) {
+        int length = strings.length;
+        if (length == 0) {
+            return "";
+        } else {
+            StringBuffer buf = (new StringBuffer(length * strings[0].length())).append(strings[0]);
+
+            for (int i = 1; i < length; ++i) {
+                buf.append(separator).append(strings[i]);
+            }
+
+            return buf.toString();
+        }
+    }
+
+    private void commaAfterOn() {
         this.out();
         --this.indent;
         this.newline();
@@ -134,14 +144,12 @@ public class CubridSQLFormatter
         this.afterByOrSetOrFromOrSelect = true;
     }
 
-    private void commaAfterByOrFromOrSelect()
-    {
+    private void commaAfterByOrFromOrSelect() {
         this.out();
         this.newline();
     }
 
-    private void logical()
-    {
+    private void logical() {
         if ("end".equals(this.lcToken)) {
             --this.indent;
         }
@@ -151,8 +159,7 @@ public class CubridSQLFormatter
         this.beginLine = false;
     }
 
-    private void on()
-    {
+    private void on() {
         ++this.indent;
         this.afterOn = true;
         this.newline();
@@ -160,8 +167,7 @@ public class CubridSQLFormatter
         this.beginLine = false;
     }
 
-    private void misc()
-    {
+    private void misc() {
         this.out();
         if ("between".equals(this.lcToken)) {
             this.afterBetween = true;
@@ -178,15 +184,13 @@ public class CubridSQLFormatter
         }
     }
 
-    private void white()
-    {
+    private void white() {
         if (!this.beginLine) {
             this.result.append(" ");
         }
     }
 
-    private void updateOrInsertOrDelete()
-    {
+    private void updateOrInsertOrDelete() {
         this.out();
         ++this.indent;
         this.beginLine = false;
@@ -199,8 +203,7 @@ public class CubridSQLFormatter
         }
     }
 
-    private void select()
-    {
+    private void select() {
         this.out();
         ++this.indent;
         this.newline();
@@ -210,13 +213,11 @@ public class CubridSQLFormatter
         this.afterByOrSetOrFromOrSelect = true;
     }
 
-    private void out()
-    {
+    private void out() {
         this.result.append(this.token);
     }
 
-    private void endNewClause()
-    {
+    private void endNewClause() {
         if (!this.afterBeginBeforeEnd) {
             --this.indent;
             if (this.afterOn) {
@@ -237,8 +238,7 @@ public class CubridSQLFormatter
         this.afterByOrSetOrFromOrSelect = "by".equals(this.lcToken) || "set".equals(this.lcToken) || "from".equals(this.lcToken);
     }
 
-    private void beginNewClause()
-    {
+    private void beginNewClause() {
         if (!this.afterBeginBeforeEnd) {
             if (this.afterOn) {
                 --this.indent;
@@ -254,8 +254,7 @@ public class CubridSQLFormatter
         this.afterBeginBeforeEnd = true;
     }
 
-    private void values()
-    {
+    private void values() {
         --this.indent;
         this.newline();
         this.out();
@@ -264,8 +263,7 @@ public class CubridSQLFormatter
         this.afterValues = true;
     }
 
-    private void closeParen()
-    {
+    private void closeParen() {
         --this.parensSinceSelect;
         if (this.parensSinceSelect < 0) {
             --this.indent;
@@ -288,8 +286,7 @@ public class CubridSQLFormatter
         this.beginLine = false;
     }
 
-    private void openParen()
-    {
+    private void openParen() {
         if (isFunctionName(this.lastToken) || this.inFunction > 0) {
             ++this.inFunction;
         }
@@ -309,8 +306,7 @@ public class CubridSQLFormatter
         ++this.parensSinceSelect;
     }
 
-    private static boolean isFunctionName(String tok)
-    {
+    private static boolean isFunctionName(String tok) {
         char begin = tok.charAt(0);
         boolean isIdentifier = Character.isJavaIdentifierStart(begin) || '"' == begin;
         return isIdentifier
@@ -321,13 +317,11 @@ public class CubridSQLFormatter
                 && !MISC.contains(tok);
     }
 
-    private static boolean isWhitespace(String token)
-    {
+    private static boolean isWhitespace(String token) {
         return " \n\r\f\t".indexOf(token) >= 0;
     }
 
-    private void newline()
-    {
+    private void newline() {
         this.result.append("\n");
 
         for (int i = 0; i < this.indent; ++i) {
@@ -335,22 +329,6 @@ public class CubridSQLFormatter
         }
 
         this.beginLine = true;
-    }
-
-    public static String join(String separator, String[] strings)
-    {
-        int length = strings.length;
-        if (length == 0) {
-            return "";
-        } else {
-            StringBuffer buf = (new StringBuffer(length * strings[0].length())).append(strings[0]);
-
-            for (int i = 1; i < length; ++i) {
-                buf.append(separator).append(strings[i]);
-            }
-
-            return buf.toString();
-        }
     }
 
     static {

@@ -49,8 +49,7 @@ public class CubridDataSource extends GenericDataSource
     private Map<String, CubridCollation> collations;
 
     public CubridDataSource(DBRProgressMonitor monitor, DBPDataSourceContainer container, CubridMetaModel metaModel)
-            throws DBException
-    {
+            throws DBException {
         super(monitor, container, metaModel, new CubridSQLDialect());
         this.metaModel = new CubridMetaModel();
     }
@@ -58,13 +57,11 @@ public class CubridDataSource extends GenericDataSource
     @DPIContainer
     @NotNull
     @Override
-    public CubridDataSource getDataSource()
-    {
+    public CubridDataSource getDataSource() {
         return this;
     }
 
-    public List<GenericSchema> getCubridUsers(DBRProgressMonitor monitor) throws DBException
-    {
+    public List<GenericSchema> getCubridUsers(DBRProgressMonitor monitor) throws DBException {
         return this.getSchemas();
     }
 
@@ -75,8 +72,7 @@ public class CubridDataSource extends GenericDataSource
             @Nullable String catalogName,
             @Nullable String schemaName,
             @NotNull String tableName)
-            throws DBException
-    {
+            throws DBException {
         if (schemaName != null) {
             return this.getSchema(schemaName).getTable(monitor, tableName);
         } else {
@@ -96,24 +92,20 @@ public class CubridDataSource extends GenericDataSource
     }
 
     @NotNull
-    public CubridMetaModel getMetaModel()
-    {
+    public CubridMetaModel getMetaModel() {
         return metaModel;
     }
 
-    public Collection<CubridCharset> getCharsets()
-    {
+    public Collection<CubridCharset> getCharsets() {
         return charsets;
     }
 
-    public CubridCollation getCollation(String name)
-    {
+    public CubridCollation getCollation(String name) {
         return collations.get(name);
     }
 
     @Override
-    public Collection<? extends DBSDataType> getDataTypes(DBRProgressMonitor monitor) throws DBException
-    {
+    public Collection<? extends DBSDataType> getDataTypes(DBRProgressMonitor monitor) throws DBException {
         Map<String, DBSDataType> types = new HashMap<>();
         for (DBSDataType dataType : super.getDataTypes(monitor)) {
             types.put(dataType.getName(), dataType);
@@ -121,8 +113,7 @@ public class CubridDataSource extends GenericDataSource
         return types.values();
     }
 
-    public CubridCharset getCharset(String name)
-    {
+    public CubridCharset getCharset(String name) {
         for (CubridCharset charset : charsets) {
             if (charset.getName().equals(name)) {
                 return charset;
@@ -131,14 +122,12 @@ public class CubridDataSource extends GenericDataSource
         return null;
     }
 
-    public ArrayList<String> getCollations()
-    {
+    public ArrayList<String> getCollations() {
         ArrayList<String> collationList = new ArrayList<String>(collations.keySet());
         return collationList;
     }
 
-    public void loadCharsets(DBRProgressMonitor monitor) throws DBException
-    {
+    public void loadCharsets(DBRProgressMonitor monitor) throws DBException {
         charsets = new ArrayList<>();
         try (JDBCSession session = DBUtils.openMetaSession(monitor, container, "Load charsets")) {
             String sql = "select * from db_charset";
@@ -158,8 +147,7 @@ public class CubridDataSource extends GenericDataSource
         charsets.sort(DBUtils.<CubridCharset>nameComparator());
     }
 
-    public void loadCollations(DBRProgressMonitor monitor) throws DBException
-    {
+    public void loadCollations(DBRProgressMonitor monitor) throws DBException {
         collations = new LinkedHashMap<>();
         try (JDBCSession session = DBUtils.openMetaSession(monitor, container, "Load collations")) {
             String sql = "SHOW COLLATION";
@@ -182,26 +170,22 @@ public class CubridDataSource extends GenericDataSource
     }
 
     @Override
-    public void initialize(@NotNull DBRProgressMonitor monitor) throws DBException
-    {
+    public void initialize(@NotNull DBRProgressMonitor monitor) throws DBException {
         super.initialize(monitor);
         loadCharsets(monitor);
         loadCollations(monitor);
     }
 
-    public boolean getSupportMultiSchema()
-    {
+    public boolean getSupportMultiSchema() {
         return this.supportMultiSchema;
     }
 
-    public void setSupportMultiSchema(boolean supportMultiSchema)
-    {
+    public void setSupportMultiSchema(boolean supportMultiSchema) {
         this.supportMultiSchema = supportMultiSchema;
     }
 
     @Override
-    public boolean splitProceduresAndFunctions()
-    {
+    public boolean splitProceduresAndFunctions() {
         return true;
     }
 }

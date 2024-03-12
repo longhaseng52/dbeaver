@@ -31,8 +31,7 @@ public class CubridSynonym extends GenericSynonym
     private String targetName;
     private String targetOwner;
 
-    public CubridSynonym(GenericStructContainer container, String name, String description, JDBCResultSet dbResult)
-    {
+    public CubridSynonym(GenericStructContainer container, String name, String description, JDBCResultSet dbResult) {
         super(container, name, description);
         this.owner = JDBCUtils.safeGetString(dbResult, "synonym_owner_name");
         this.targetName = JDBCUtils.safeGetString(dbResult, "target_name");
@@ -40,26 +39,22 @@ public class CubridSynonym extends GenericSynonym
     }
 
     @Override
-    public DBSObject getTargetObject(DBRProgressMonitor monitor) throws DBException
-    {
+    public DBSObject getTargetObject(DBRProgressMonitor monitor) throws DBException {
         return null;
     }
 
     @Property(viewable = true, order = 2)
-    public String getOwner()
-    {
+    public String getOwner() {
         return owner;
     }
 
     @Property(viewable = true, order = 3)
-    public String getTargetName()
-    {
+    public String getTargetName() {
         return targetName;
     }
 
     @Property(viewable = true, order = 4)
-    public String getTargetOwner()
-    {
+    public String getTargetOwner() {
         return targetOwner;
     }
 }

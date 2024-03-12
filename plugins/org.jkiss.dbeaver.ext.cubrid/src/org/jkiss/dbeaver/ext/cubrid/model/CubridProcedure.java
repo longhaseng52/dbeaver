@@ -44,65 +44,55 @@ public class CubridProcedure extends GenericProcedure
             String description,
             DBSProcedureType procedureType,
             String target,
-            String returnType)
-    {
+            String returnType) {
         super(container, procedureName, description, procedureType, null, true);
         this.returnType = returnType;
     }
 
     @Override
     @Property(viewable = true, order = 1)
-    public String getName()
-    {
+    public String getName() {
         return super.getName();
     }
 
     @Property(viewable = true, order = 2)
-    public GenericSchema getSchema()
-    {
+    public GenericSchema getSchema() {
         return super.getSchema();
     }
 
     @Override
-    public GenericCatalog getCatalog()
-    {
+    public GenericCatalog getCatalog() {
         return null;
     }
 
     @Override
-    public GenericFunctionResultType getFunctionResultType()
-    {
+    public GenericFunctionResultType getFunctionResultType() {
         return null;
     }
 
     @Override
-    public GenericPackage getPackage()
-    {
+    public GenericPackage getPackage() {
         return null;
     }
 
     @Property(viewable = true, order = 20)
-    public String getReturnType()
-    {
+    public String getReturnType() {
         return returnType;
     }
 
     @Property(viewable = true, length = PropertyLength.MULTILINE, order = 100)
-    public String getDescription()
-    {
+    public String getDescription() {
         return super.getDescription();
     }
 
-    public void addColumn(CubridProcedureParameter column)
-    {
+    public void addColumn(CubridProcedureParameter column) {
         if (this.pro_columns == null) {
             this.pro_columns = new ArrayList<>();
         }
         this.pro_columns.add(column);
     }
 
-    public List<CubridProcedureParameter> getParams(DBRProgressMonitor monitor) throws DBException
-    {
+    public List<CubridProcedureParameter> getParams(DBRProgressMonitor monitor) throws DBException {
         if (pro_columns == null) {
             loadProcedureColumns(monitor);
             if (pro_columns == null) {
@@ -113,14 +103,12 @@ public class CubridProcedure extends GenericProcedure
     }
 
     @Override
-    public String getFullyQualifiedName(DBPEvaluationContext context)
-    {
+    public String getFullyQualifiedName(DBPEvaluationContext context) {
         return getName();
     }
 
     @Override
-    public void loadProcedureColumns(DBRProgressMonitor monitor) throws DBException
-    {
+    public void loadProcedureColumns(DBRProgressMonitor monitor) throws DBException {
         try (JDBCSession session = DBUtils.openMetaSession(monitor, getDataSource(), "Read procedure parameter")) {
             String stmt = "select * from db_stored_procedure_args where sp_name = '" + getName() + "'";
             try (JDBCPreparedStatement dbStat = session.prepareStatement(stmt)) {

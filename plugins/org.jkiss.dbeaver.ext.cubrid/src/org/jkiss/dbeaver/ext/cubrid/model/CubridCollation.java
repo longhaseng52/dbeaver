@@ -28,45 +28,40 @@ public class CubridCollation implements DBSObject
     private CubridCharset charset;
     private CubridDataSource dataSource;
 
-    protected CubridCollation(String name)
-    {
+    protected CubridCollation(String name) {
         this.name = name;
     }
 
-    protected CubridCollation(CubridCharset charset, ResultSet dbResult) throws SQLException
-    {
+    protected CubridCollation(CubridCharset charset, ResultSet dbResult) throws SQLException {
         this.name = JDBCUtils.safeGetString(dbResult, "collation");
         this.charset = charset;
         this.dataSource = charset.getDataSource();
     }
 
-    public CubridDataSource getDataSource()
-    {
+    public CubridDataSource getDataSource() {
         return dataSource;
     }
 
-    public String getName()
-    {
+    public String getName() {
         return name;
     }
 
-    public CubridCharset getCharset()
-    {
+    public CubridCharset getCharset() {
         return charset;
     }
 
-	@Override
-	public String getDescription() {
-		return null;
-	}
+    @Override
+    public String getDescription() {
+        return null;
+    }
 
-	@Override
-	public boolean isPersisted() {
-		return false;
-	}
+    @Override
+    public boolean isPersisted() {
+        return false;
+    }
 
-	@Override
-	public DBSObject getParentObject() {
-		return null;
-	}
+    @Override
+    public DBSObject getParentObject() {
+        return null;
+    }
 }

@@ -47,8 +47,7 @@ public class CubridTableManager extends GenericTableManager implements DBEObject
             GenericTableIndex.class);
 
     @Override
-    public Class<? extends DBSObject>[] getChildTypes()
-    {
+    public Class<? extends DBSObject>[] getChildTypes() {
         return CHILD_TYPES;
     }
 
@@ -66,8 +65,7 @@ public class CubridTableManager extends GenericTableManager implements DBEObject
             DBCExecutionContext executionContext,
             List<DBEPersistAction> actionList,
             ObjectChangeCommand command,
-            Map<String, Object> options)
-    {
+            Map<String, Object> options) {
         if (command.getProperties().size() > 1 || command.getProperty("schema") == null) {
             CubridTable table = (CubridTable) command.getObject();
             StringBuilder query = new StringBuilder("ALTER TABLE ");
@@ -83,8 +81,7 @@ public class CubridTableManager extends GenericTableManager implements DBEObject
             GenericTableBase genericTable,
             NestedObjectCommand command,
             StringBuilder query,
-            boolean alter)
-    {
+            boolean alter) {
         CubridTable table = (CubridTable) genericTable;
         String suffix = alter ? "," : "\n";
         query.append("\n");
@@ -109,8 +106,7 @@ public class CubridTableManager extends GenericTableManager implements DBEObject
             DBCExecutionContext executionContext,
             List<DBEPersistAction> actions,
             NestedObjectCommand<GenericTableBase, PropertyHandler> command,
-            Map<String, Object> options)
-    {
+            Map<String, Object> options) {
         CubridTable table = (CubridTable) command.getObject();
         if (command.hasProperty("schema") && table.getOldSchema() != table.getSchema()) {
             actions.add(
@@ -126,8 +122,7 @@ public class CubridTableManager extends GenericTableManager implements DBEObject
             DBCExecutionContext executionContext,
             List<DBEPersistAction> actions,
             ObjectRenameCommand command,
-            Map<String, Object> options)
-    {
+            Map<String, Object> options) {
         CubridTable table = (CubridTable) command.getObject();
         actions.add(
                 new SQLDatabasePersistAction(
@@ -141,8 +136,7 @@ public class CubridTableManager extends GenericTableManager implements DBEObject
             GenericTableBase object,
             Map<String, Object> options,
             String newName)
-            throws DBException
-    {
+            throws DBException {
         processObjectRename(commandContext, object, options, newName);
     }
 }

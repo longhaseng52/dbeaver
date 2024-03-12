@@ -50,8 +50,7 @@ public class CubridUser extends GenericSchema
     private String comment;
     private final CubridIndexCache cubridIndexCache;
 
-    public CubridUser(GenericDataSource dataSource, String schemaName, String comment)
-    {
+    public CubridUser(GenericDataSource dataSource, String schemaName, String comment) {
         super(dataSource, null, schemaName);
         this.name = schemaName;
         this.comment = comment;
@@ -59,51 +58,42 @@ public class CubridUser extends GenericSchema
     }
 
     @Property(viewable = true, order = 1)
-    public String getName()
-    {
+    public String getName() {
         return name;
     }
 
     @Nullable
     @Property(viewable = true, order = 2)
-    public String getComment()
-    {
+    public String getComment() {
         return comment;
     }
 
-    public boolean supportsSystemTable()
-    {
+    public boolean supportsSystemTable() {
         return name.equals("DBA");
     }
 
-    public boolean supportsSystemView()
-    {
+    public boolean supportsSystemView() {
         return name.equals("DBA");
     }
 
-    public boolean showSystemTableFolder()
-    {
+    public boolean showSystemTableFolder() {
         return this.getDataSource().getContainer().getNavigatorSettings().isShowSystemObjects();
     }
 
-    public boolean supportsSynonym()
-    {
+    public boolean supportsSynonym() {
         return ((CubridDataSource) this.getDataSource()).getSupportMultiSchema();
     }
 
-    public boolean supportsTrigger()
-    {
+    public boolean supportsTrigger() {
         return this.getDataSource().getContainer().getConnectionConfiguration().getUserName().equals("dba");
     }
 
-    public CubridIndexCache getCubridIndexCache()
-    {
+    public CubridIndexCache getCubridIndexCache() {
         return cubridIndexCache;
     }
 
     @Override
-    public List<CubridTable> getPhysicalTables(DBRProgressMonitor monitor) throws DBException
-    {
+    public List<CubridTable> getPhysicalTables(DBRProgressMonitor monitor) throws DBException {
         List<CubridTable> tables = new ArrayList<>();
         for (GenericTable table : super.getPhysicalTables(monitor)) {
             if (!table.isSystem()) {
@@ -114,8 +104,7 @@ public class CubridUser extends GenericSchema
     }
 
     public List<? extends CubridTable> getPhysicalSystemTables(DBRProgressMonitor monitor)
-            throws DBException
-    {
+            throws DBException {
         List<CubridTable> tables = new ArrayList<>();
         for (GenericTable table : super.getPhysicalTables(monitor)) {
             if (table.isSystem()) {
@@ -126,8 +115,7 @@ public class CubridUser extends GenericSchema
     }
 
     @Override
-    public List<CubridView> getViews(DBRProgressMonitor monitor) throws DBException
-    {
+    public List<CubridView> getViews(DBRProgressMonitor monitor) throws DBException {
         List<CubridView> views = new ArrayList<>();
         for (GenericView view : super.getViews(monitor)) {
             if (!view.isSystem()) {
@@ -137,8 +125,7 @@ public class CubridUser extends GenericSchema
         return views;
     }
 
-    public List<CubridView> getSystemViews(DBRProgressMonitor monitor) throws DBException
-    {
+    public List<CubridView> getSystemViews(DBRProgressMonitor monitor) throws DBException {
         List<CubridView> views = new ArrayList<>();
         for (GenericView view : super.getViews(monitor)) {
             if (view.isSystem()) {
@@ -149,14 +136,12 @@ public class CubridUser extends GenericSchema
     }
 
     @Override
-    public List<GenericTableIndex> getIndexes(DBRProgressMonitor monitor) throws DBException
-    {
+    public List<GenericTableIndex> getIndexes(DBRProgressMonitor monitor) throws DBException {
         cacheIndexes(monitor);
         return cubridIndexCache.getAllObjects(monitor, this);
     }
 
-    private void cacheIndexes(DBRProgressMonitor monitor) throws DBException
-    {
+    private void cacheIndexes(DBRProgressMonitor monitor) throws DBException {
         synchronized (cubridIndexCache) {
             if(!cubridIndexCache.isFullyCached()) {
                 List<GenericTableIndex> newIndexCache = new ArrayList<>();
@@ -170,15 +155,13 @@ public class CubridUser extends GenericSchema
 
     public class CubridIndexCache extends JDBCCompositeCache<GenericStructContainer, CubridTable, GenericTableIndex, GenericTableIndexColumn>
     {
-        CubridIndexCache(TableCache tableCache)
-        {
+        CubridIndexCache(TableCache tableCache) {
             super(tableCache, CubridTable.class, JDBCConstants.TABLE_NAME, JDBCConstants.INDEX_NAME);
         }
 
         @Override
         protected JDBCStatement prepareObjectsStatement(JDBCSession session, GenericStructContainer owner, CubridTable forParent)
-                throws SQLException
-        {
+                throws SQLException {
             return session.getMetaData().getIndexInfo(null, null, forParent.getUniqueName(), false, true).getSourceStatement();
         }
 
@@ -189,8 +172,7 @@ public class CubridUser extends GenericSchema
                 CubridTable parent,
                 String indexName,
                 JDBCResultSet dbResult)
-                throws SQLException, DBException
-        {
+                throws SQLException, DBException {
             boolean isNonUnique = JDBCUtils.safeGetBoolean(dbResult, JDBCConstants.NON_UNIQUE);
             String indexQualifier = JDBCUtils.safeGetStringTrimmed(dbResult, JDBCConstants.INDEX_QUALIFIER);
             long cardinality = JDBCUtils.safeGetLong(dbResult, JDBCConstants.INDEX_CARDINALITY);
@@ -227,8 +209,7 @@ public class CubridUser extends GenericSchema
                 CubridTable parent,
                 GenericTableIndex object,
                 JDBCResultSet dbResult)
-                throws SQLException, DBException
-        {
+                throws SQLException, DBException {
             int ordinalPosition = JDBCUtils.safeGetInt(dbResult, JDBCConstants.ORDINAL_POSITION);
             String columnName = JDBCUtils.safeGetString(dbResult, JDBCConstants.COLUMN_NAME);
             String ascOrDesc = JDBCUtils.safeGetStringTrimmed(dbResult, JDBCConstants.ASC_OR_DESC);
@@ -249,8 +230,7 @@ public class CubridUser extends GenericSchema
         protected void cacheChildren(
                 DBRProgressMonitor monitor,
                 GenericTableIndex object,
-                List<GenericTableIndexColumn> children)
-        {
+                List<GenericTableIndexColumn> children) {
             object.setColumns(children);
         }
     }

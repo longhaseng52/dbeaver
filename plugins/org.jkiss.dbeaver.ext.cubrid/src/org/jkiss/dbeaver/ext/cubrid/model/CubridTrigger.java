@@ -35,8 +35,7 @@ public class CubridTrigger extends GenericTableTrigger
     private Integer actionType;
     private String actionDefinition;
 
-    public CubridTrigger(GenericTableBase container, String name, String description, JDBCResultSet dbResult)
-    {
+    public CubridTrigger(GenericTableBase container, String name, String description, JDBCResultSet dbResult) {
         super(container, name, description);
         this.owner = JDBCUtils.safeGetString(dbResult, "owner.name");
         this.targetOwner = JDBCUtils.safeGetString(dbResult, "target_owner_name");
@@ -50,33 +49,28 @@ public class CubridTrigger extends GenericTableTrigger
     }
 
     @Property(viewable = true, order = 2)
-    public String getOwner()
-    {
+    public String getOwner() {
         return owner;
     }
 
     @Property(viewable = true, order = 3)
-    public String getTargetOwner()
-    {
+    public String getTargetOwner() {
         return targetOwner == null ? this.getTable().getSchema().getName() : targetOwner ;
     }
 
     @Override
     @Property(viewable = true, order = 4)
-    public CubridTable getTable()
-    {
+    public CubridTable getTable() {
         return (CubridTable) super.getTable();
     }
 
     @Property(viewable = true, order = 10)
-    public Number getPriority()
-    {
+    public Number getPriority() {
         return priority;
     }
 
     @Property(viewable = true, order = 20)
-    public String getEvent()
-    {
+    public String getEvent() {
         if (event != null) {
             switch (event) {
                 case 0:
@@ -104,26 +98,22 @@ public class CubridTrigger extends GenericTableTrigger
     }
 
     @Property(viewable = true, order = 30)
-    public String getConditionTime()
-    {
+    public String getConditionTime() {
         return getSpecificTime(conditionTime);
     }
 
     @Property(viewable = true, order = 40)
-    public String getCondition()
-    {
+    public String getCondition() {
         return condition;
     }
 
     @Property(viewable = true, order = 50)
-    public String getActionTime()
-    {
+    public String getActionTime() {
         return getSpecificTime(actionTime);
     }
 
     @Property(viewable = true, order = 60)
-    public String getActionType()
-    {
+    public String getActionType() {
         if (actionType != null) {
             switch (actionType) {
                 case 1:
@@ -143,13 +133,11 @@ public class CubridTrigger extends GenericTableTrigger
     }
 
     @Property(viewable = true, order = 70)
-    public String getActionDefinition()
-    {
+    public String getActionDefinition() {
         return actionDefinition;
     }
 
-    public String getSpecificTime(Integer time)
-    {
+    public String getSpecificTime(Integer time) {
         if (time != null) {
             switch (time) {
                 case 1:
@@ -167,8 +155,7 @@ public class CubridTrigger extends GenericTableTrigger
     }
 
     @Override
-    public String getFullyQualifiedName(DBPEvaluationContext context)
-    {
+    public String getFullyQualifiedName(DBPEvaluationContext context) {
         return super.getFullyQualifiedName(context);
     }
 }

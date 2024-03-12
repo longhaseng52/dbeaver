@@ -53,8 +53,7 @@ public class CubridMetaModel extends GenericMetaModel
 {
     private static final Log log = Log.getLog(CubridMetaModel.class);
 
-    public String getTableOrViewName(GenericTableBase base) 
-    {
+    public String getTableOrViewName(GenericTableBase base) {
         if (base != null) {
             if (base.isView()) {
                 return ((CubridView) base).getUniqueName();
@@ -67,8 +66,7 @@ public class CubridMetaModel extends GenericMetaModel
 
     @Override
     public List<GenericSchema> loadSchemas(JDBCSession session, GenericDataSource dataSource, GenericCatalog catalog)
-            throws DBException
-    {
+            throws DBException {
         List<GenericSchema> users = new ArrayList<>();
         try {
             final JDBCPreparedStatement dbStat = session.prepareStatement("select * from db_user");
@@ -96,8 +94,7 @@ public class CubridMetaModel extends GenericMetaModel
             @NotNull GenericStructContainer owner,
             @Nullable GenericTableBase object,
             @Nullable String objectName)
-            throws SQLException
-    {
+            throws SQLException {
         String sql = "select a.*,a.class_name as TABLE_NAME, case when class_type = 'CLASS' then 'TABLE' \r\n"
                 + "when class_type = 'VCLASS' then 'VIEW' end as TABLE_TYPE, \r\n"
                 + "a.comment as REMARKS, b.current_val from db_class a LEFT JOIN \r\n"
@@ -114,8 +111,7 @@ public class CubridMetaModel extends GenericMetaModel
             @NotNull JDBCSession session,
             @NotNull GenericStructContainer owner,
             @Nullable GenericTableBase forTable)
-            throws SQLException
-    {
+            throws SQLException {
         String sql = "show full columns from " + getTableOrViewName(forTable);
         final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
         return dbStat;
@@ -126,8 +122,7 @@ public class CubridMetaModel extends GenericMetaModel
             @NotNull JDBCSession session,
             @NotNull GenericStructContainer owner,
             @Nullable GenericTableBase forTable)
-            throws SQLException, DBException
-    {
+            throws SQLException, DBException {
         CubridTable table = (CubridTable) forTable;
         String sql = "select *, t1.index_name as PK_NAME from db_index t1 join db_index_key t2 \n"
                 + "on t1.index_name = t2.index_name where is_unique = 'YES' and t1.class_name = ? \n"
@@ -147,8 +142,7 @@ public class CubridMetaModel extends GenericMetaModel
             GenericUniqueKey object,
             GenericMetaObject pkObject,
             JDBCResultSet dbResult)
-            throws DBException
-    {
+            throws DBException {
         String name = JDBCUtils.safeGetStringTrimmed(dbResult, "key_attr_name");
         Integer keyOrder = JDBCUtils.safeGetInteger(dbResult, "key_order") + 1;
         GenericTableColumn tableColumn = parent.getAttribute(session.getProgressMonitor(), name);
@@ -157,8 +151,7 @@ public class CubridMetaModel extends GenericMetaModel
     }
 
     @Override
-    public DBSEntityConstraintType getUniqueConstraintType(JDBCResultSet dbResult) throws DBException
-    {
+    public DBSEntityConstraintType getUniqueConstraintType(JDBCResultSet dbResult) throws DBException {
         String isUnique = JDBCUtils.safeGetString(dbResult, "is_unique");
         String isPrimary = JDBCUtils.safeGetString(dbResult, "is_primary_key");
         if(isPrimary.equals("YES")) {
@@ -175,8 +168,7 @@ public class CubridMetaModel extends GenericMetaModel
             @NotNull JDBCSession session,
             @NotNull GenericStructContainer owner,
             @Nullable GenericTableBase forTable)
-            throws SQLException
-    {
+            throws SQLException {
         return session.getMetaData().getImportedKeys(null, null, this.getTableOrViewName(forTable)).getSourceStatement();
     }
 
@@ -185,8 +177,7 @@ public class CubridMetaModel extends GenericMetaModel
             @NotNull JDBCSession session,
             @NotNull GenericStructContainer owner,
             @NotNull GenericMetaObject tableObject,
-            @NotNull JDBCResultSet dbResult)
-    {
+            @NotNull JDBCResultSet dbResult) {
         String tableName = JDBCUtils.safeGetString(dbResult, JDBCConstants.TABLE_NAME);
         String tableType = JDBCUtils.safeGetStringTrimmed(dbResult, JDBCConstants.TABLE_TYPE);
         GenericTableBase table = createTableOrViewImpl(owner, tableName, tableType, dbResult);
@@ -198,21 +189,18 @@ public class CubridMetaModel extends GenericMetaModel
             GenericStructContainer container,
             @Nullable String tableName,
             @Nullable String tableType,
-            @Nullable JDBCResultSet dbResult)
-    {
+            @Nullable JDBCResultSet dbResult) {
         if (tableType != null && isView(tableType)) {
             return new CubridView(container, tableName, tableType, dbResult);
         }
         return new CubridTable(container, tableName, tableType, dbResult);
     }
 
-    public boolean isTableCommentEditable()
-    {
+    public boolean isTableCommentEditable() {
         return true;
     }
 
-    public boolean isTableColumnCommentEditable()
-    {
+    public boolean isTableColumnCommentEditable() {
         return true;
     }
 
@@ -236,14 +224,12 @@ public class CubridMetaModel extends GenericMetaModel
             String defaultValue,
             boolean autoIncrement,
             boolean autoGenerated)
-            throws DBException
-    {
+            throws DBException {
         return new CubridTableColumn(table, dbResult);
     }
 
     @Override
-    public String getViewDDL(DBRProgressMonitor monitor, GenericView object, Map<String, Object> options) throws DBException
-    {
+    public String getViewDDL(DBRProgressMonitor monitor, GenericView object, Map<String, Object> options) throws DBException {
         JDBCSession session = DBUtils.openMetaSession(monitor, object, "load view ddl " + object.getName());
         String ddl = "-- View definition not available";
         String regex = "\\[|\\]";
@@ -269,8 +255,7 @@ public class CubridMetaModel extends GenericMetaModel
     public JDBCStatement prepareSequencesLoadStatement(
             @NotNull JDBCSession session,
             @NotNull GenericStructContainer container)
-            throws SQLException
-    {
+            throws SQLException {
         String sql = "select *, owner.name from db_serial where owner.name = ?";
         final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
         dbStat.setString(1, container.getName());
@@ -282,8 +267,7 @@ public class CubridMetaModel extends GenericMetaModel
             @NotNull JDBCSession session,
             @NotNull GenericStructContainer container,
             @NotNull JDBCResultSet dbResult)
-            throws DBException
-    {
+            throws DBException {
         String name = JDBCUtils.safeGetStringTrimmed(dbResult, "name");
         String description = JDBCUtils.safeGetString(dbResult, "comment");
         Number lastValue = JDBCUtils.safeGetInteger(dbResult, "current_val");
@@ -297,8 +281,7 @@ public class CubridMetaModel extends GenericMetaModel
     public JDBCStatement prepareSynonymsLoadStatement(
             @NotNull JDBCSession session,
             @NotNull GenericStructContainer container)
-            throws SQLException
-    {
+            throws SQLException {
         String sql = "select * from db_synonym where synonym_owner_name = ?";
         final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
         dbStat.setString(1, container.getName());
@@ -310,22 +293,19 @@ public class CubridMetaModel extends GenericMetaModel
             @NotNull JDBCSession session,
             @NotNull GenericStructContainer container,
             @NotNull JDBCResultSet dbResult)
-            throws DBException
-    {
+            throws DBException {
         String name = JDBCUtils.safeGetStringTrimmed(dbResult, "synonym_name");
         String description = JDBCUtils.safeGetString(dbResult, "comment");
         return new CubridSynonym(container, name, description, dbResult);
     }
 
     @Override
-    public boolean supportsDatabaseTriggers(@NotNull GenericDataSource dataSource)
-    {
+    public boolean supportsDatabaseTriggers(@NotNull GenericDataSource dataSource) {
         return true;
     }
 
     @Override
-    public boolean supportsTriggers(@NotNull GenericDataSource dataSource)
-    {
+    public boolean supportsTriggers(@NotNull GenericDataSource dataSource) {
         return true;
     }
 
@@ -334,8 +314,7 @@ public class CubridMetaModel extends GenericMetaModel
             @NotNull JDBCSession session,
             @NotNull GenericStructContainer container,
             @Nullable GenericTableBase table)
-            throws SQLException
-    {
+            throws SQLException {
         String sql = "select t1.*, t2.*, owner.name from db_trigger t1 join db_trig t2 \n"
                 + "on t1.name = t2.trigger_name where owner.name = ? \n"
                 + (table != null ? "and target_class_name = ?" : "");
@@ -354,8 +333,7 @@ public class CubridMetaModel extends GenericMetaModel
             @NotNull GenericTableBase table,
             String triggerName,
             @NotNull JDBCResultSet dbResult)
-            throws DBException
-    {
+            throws DBException {
         String name = JDBCUtils.safeGetString(dbResult, "name");
         String description = JDBCUtils.safeGetString(dbResult, "comment");
         return new CubridTrigger(table, name, description, dbResult);
@@ -365,8 +343,7 @@ public class CubridMetaModel extends GenericMetaModel
     public JDBCStatement prepareContainerTriggersLoadStatement(
             @NotNull JDBCSession session,
             @Nullable GenericStructContainer container)
-            throws SQLException
-    {
+            throws SQLException {
         String sql = "select t1.*, t2.*, owner.name from db_trigger t1 join db_trig t2 \n"
                 + "on t1.name = t2.trigger_name where owner.name = ? \n";
         final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
@@ -378,8 +355,7 @@ public class CubridMetaModel extends GenericMetaModel
     public CubridTrigger createContainerTriggerImpl(
             @NotNull GenericStructContainer container,
             @NotNull JDBCResultSet dbResult)
-            throws DBException
-    {
+            throws DBException {
         String name = JDBCUtils.safeGetString(dbResult, "name");
         String description = JDBCUtils.safeGetString(dbResult, "comment");
         String tableName = JDBCUtils.safeGetString(dbResult, "target_class_name");
@@ -393,8 +369,7 @@ public class CubridMetaModel extends GenericMetaModel
     public void loadProcedures(
             DBRProgressMonitor monitor,
             @NotNull GenericObjectContainer container)
-            throws DBException
-    {
+            throws DBException {
         try (JDBCSession session = DBUtils.openMetaSession(monitor, container, "Load procedures")) {
             String sql = "select * from db_stored_procedure where owner = ?";
             final JDBCPreparedStatement dbStat = session.prepareStatement(sql);

@@ -36,8 +36,7 @@ public class CubridProcedureParameter implements DBSProcedureParameter
             String argName,
             String dataType,
             String mode,
-            String comment)
-    {
+            String comment) {
         this.procName = procName;
         this.argName = argName;
         this.dataType = dataType;
@@ -47,63 +46,53 @@ public class CubridProcedureParameter implements DBSProcedureParameter
 
     @Override
     @Property(viewable = true, order = 1)
-    public String getName()
-    {
+    public String getName() {
         return procName;
     }
 
     @Property(viewable = true, order = 2)
-    public String getArgName()
-    {
+    public String getArgName() {
         return argName;
     }
 
     @Property(viewable = true, order = 3)
-    public String getDataType()
-    {
+    public String getDataType() {
         return dataType;
     }
 
     @Property(viewable = true, order = 4)
-    public String getMode()
-    {
+    public String getMode() {
         return mode;
     }
 
     @Override
     @Property(viewable = true, order = 5)
-    public String getDescription()
-    {
+    public String getDescription() {
         return comment;
     }
 
     @Override
-    public DBSTypedObject getParameterType()
-    {
+    public DBSTypedObject getParameterType() {
         return null;
     }
 
     @Override
-    public CubridProcedure getParentObject()
-    {
+    public CubridProcedure getParentObject() {
         return procedure;
     }
 
     @Override
-    public DBSProcedureParameterKind getParameterKind()
-    {
+    public DBSProcedureParameterKind getParameterKind() {
         return null;
     }
 
     @Override
-    public DBPDataSource getDataSource()
-    {
+    public DBPDataSource getDataSource() {
         return null;
     }
 
     @Override
-    public boolean isPersisted()
-    {
+    public boolean isPersisted() {
         return true;
     }
 }

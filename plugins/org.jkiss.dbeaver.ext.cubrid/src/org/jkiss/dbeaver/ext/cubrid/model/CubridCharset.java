@@ -31,38 +31,32 @@ public class CubridCharset implements DBSObject
     private CubridDataSource dataSource;
     private List<CubridCollation> collations = new ArrayList<>();
 
-    protected CubridCharset(CubridDataSource dataSource, ResultSet dbResult)
-    {
+    protected CubridCharset(CubridDataSource dataSource, ResultSet dbResult) {
         this.name = JDBCUtils.safeGetString(dbResult, "charset_name");
         this.dataSource = dataSource;
     }
 
-    public CubridDataSource getDataSource()
-    {
+    public CubridDataSource getDataSource() {
         return dataSource;
     }
 
-    public void addCollation(CubridCollation collation)
-    {
+    public void addCollation(CubridCollation collation) {
         collations.add(collation);
         Collections.sort(collations, DBUtils.nameComparator());
     }
 
-    public List<CubridCollation> getCollations()
-    {
+    public List<CubridCollation> getCollations() {
         return collations;
     }
 
-    public CubridCollation getDefaultCollation()
-    {
+    public CubridCollation getDefaultCollation() {
         for (CubridCollation collation : collations) {
             return collation;
         }
         return null;
     }
 
-    public CubridCollation getCollation(String name)
-    {
+    public CubridCollation getCollation(String name) {
         for (CubridCollation collation : collations) {
             if (collation.getName().equals(name)) {
                 return collation;
@@ -71,23 +65,22 @@ public class CubridCharset implements DBSObject
         return null;
     }
 
-    public String getName()
-    {
+    public String getName() {
         return name;
     }
 
-	@Override
-	public String getDescription() {
-		return null;
-	}
+    @Override
+    public String getDescription() {
+        return null;
+    }
 
-	@Override
-	public boolean isPersisted() {
-		return false;
-	}
+    @Override
+    public boolean isPersisted() {
+        return false;
+    }
 
-	@Override
-	public DBSObject getParentObject() {
-		return null;
-	}
+    @Override
+    public DBSObject getParentObject() {
+        return null;
+    }
 }

@@ -50,8 +50,7 @@ public class CubridTableColumnManager extends GenericTableColumnManager implemen
             Object container,
             Object copyFrom,
             @NotNull Map<String, Object> options)
-            throws DBException
-    {
+            throws DBException {
         CubridTable table = (CubridTable) container;
         DBSDataType columnType = findBestDataType(table, DBConstants.DEFAULT_DATATYPE_NAMES);
         int columnSize = columnType != null && columnType.getDataKind() == DBPDataKind.STRING ? 100 : 0;
@@ -73,8 +72,7 @@ public class CubridTableColumnManager extends GenericTableColumnManager implemen
             DBRProgressMonitor monitor,
             GenericTableBase owner,
             DBECommandAbstract<GenericTableColumn> command,
-            Map<String, Object> options)
-    {
+            Map<String, Object> options) {
         StringBuilder decl = new StringBuilder(40);
         CubridTableColumn column = (CubridTableColumn) command.getObject();
         String columnName = DBUtils.getQuotedIdentifier(column.getDataSource(), column.getName());
@@ -105,8 +103,7 @@ public class CubridTableColumnManager extends GenericTableColumnManager implemen
             List<DBEPersistAction> actionList,
             ObjectChangeCommand command,
             Map<String, Object> options)
-            throws DBException
-    {
+            throws DBException {
         final CubridTableColumn column = (CubridTableColumn) command.getObject();
         String table = column.getTable().getSchema().getName() + "." + column.getTable().getName();
         actionList.add(
@@ -121,8 +118,7 @@ public class CubridTableColumnManager extends GenericTableColumnManager implemen
             DBCExecutionContext executionContext,
             List<DBEPersistAction> actions,
             ObjectRenameCommand command,
-            Map<String, Object> options)
-    {
+            Map<String, Object> options) {
         final CubridTableColumn column = (CubridTableColumn) command.getObject();
         String table = column.getTable().getSchema().getName() + "." + column.getTable().getName();
         actions.add(
@@ -137,8 +133,7 @@ public class CubridTableColumnManager extends GenericTableColumnManager implemen
             GenericTableColumn object,
             Map<String, Object> options,
             String newName)
-            throws DBException
-    {
+            throws DBException {
         processObjectRename(commandContext, object, options, newName);
     }
 }
