@@ -77,10 +77,16 @@ public class CubridDataSource extends GenericDataSource
             @NotNull String tableName)
             throws DBException
     {
-        String[] schema = tableName.split("\\.");
-        if (schema.length > 1) {
-            CubridUser user = (CubridUser) this.getSchema(schema[0].toUpperCase());
-            return user.getTable(monitor, schema[1]);
+        String[] schemas = tableName.split("\\.");
+        if (schemas.length > 1) {
+            return this.getSchema(schemas[0].toUpperCase()).getTable(monitor, tableName);
+        } else {
+            for (GenericSchema schema : this.getCubridUsers(monitor)) {
+                GenericTableBase table = schema.getTable(monitor, tableName);
+                if (table != null) {
+                    return table;
+                }
+            }
         }
         return null;
     }
