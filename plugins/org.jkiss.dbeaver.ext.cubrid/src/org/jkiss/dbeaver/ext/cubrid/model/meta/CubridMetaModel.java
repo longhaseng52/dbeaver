@@ -383,14 +383,9 @@ public class CubridMetaModel extends GenericMetaModel
         String name = JDBCUtils.safeGetString(dbResult, "name");
         String description = JDBCUtils.safeGetString(dbResult, "comment");
         String tableName = JDBCUtils.safeGetString(dbResult, "target_class_name");
+        String owner = JDBCUtils.safeGetString(dbResult, "target_owner_name");
         DBRProgressMonitor monitor = dbResult.getSession().getProgressMonitor();
-        CubridTable cubridTable = null;
-        for (GenericTableBase table: container.getTables(monitor)){
-            if (table.getName().equals(tableName)) {
-                cubridTable = (CubridTable) table;
-                break;
-            }
-        }
+        CubridTable cubridTable = (CubridTable) container.getDataSource().findTable(monitor, null, owner, tableName);
         return new CubridTrigger(cubridTable, name, description, dbResult);
     }
 
