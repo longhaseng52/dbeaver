@@ -22,6 +22,7 @@ import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
 import org.jkiss.dbeaver.model.meta.Property;
+import org.jkiss.utils.CommonUtils;
 
 public class CubridTableColumn extends GenericTableColumn
 {
@@ -30,12 +31,27 @@ public class CubridTableColumn extends GenericTableColumn
         if (dbResult != null) {
             typeName = JDBCUtils.safeGetString(dbResult, "Type");
             setName(JDBCUtils.safeGetString(dbResult, "Field"));
-            setFullTypeName(typeName);
+            setDataType(typeName);
             setRequired(JDBCUtils.safeGetString(dbResult, "Null").equals("NO"));
             setDescription(JDBCUtils.safeGetString(dbResult, "Comment"));
             setDefaultValue(JDBCUtils.safeGetString(dbResult, "Default"));
             setAutoIncrement(JDBCUtils.safeGetString(dbResult, "Extra").equals("auto_increment"));
             setPersisted(true);
+        }
+    }
+
+    public void setDataType(String fullTypeName) throws DBException {
+        int divPos = fullTypeName.indexOf("(");
+        int divPos2 = fullTypeName.indexOf(")", divPos);
+        if (divPos == -1 && divPos2 == -1) {
+            setFullTypeName(fullTypeName);
+        } else {
+            String length = fullTypeName.substring(divPos+1, divPos2);
+            if (CommonUtils.isInt(length)) {
+                setFullTypeName(fullTypeName);
+            } else {
+                setTypeName(fullTypeName);
+            }
         }
     }
 
