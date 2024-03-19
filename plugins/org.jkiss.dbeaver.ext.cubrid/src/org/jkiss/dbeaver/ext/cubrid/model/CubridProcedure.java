@@ -16,6 +16,8 @@
  */
 package org.jkiss.dbeaver.ext.cubrid.model;
 
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.ext.generic.model.*;
 import org.jkiss.dbeaver.model.DBPEvaluationContext;
@@ -39,60 +41,68 @@ public class CubridProcedure extends GenericProcedure
     private String returnType;
 
     public CubridProcedure(
-            GenericStructContainer container,
-            String procedureName,
-            String description,
-            DBSProcedureType procedureType,
-            String target,
-            String returnType) {
+            @NotNull GenericStructContainer container,
+            @NotNull String procedureName,
+            @Nullable String description,
+            @NotNull DBSProcedureType procedureType,
+            @NotNull String target,
+            @NotNull String returnType) {
         super(container, procedureName, description, procedureType, null, true);
         this.returnType = returnType;
     }
 
+    @NotNull
     @Override
     @Property(viewable = true, order = 1)
     public String getName() {
         return super.getName();
     }
 
+    @NotNull
     @Property(viewable = true, order = 2)
     public GenericSchema getSchema() {
         return super.getSchema();
     }
 
+    @Nullable
     @Override
     public GenericCatalog getCatalog() {
         return null;
     }
 
+    @Nullable
     @Override
     public GenericFunctionResultType getFunctionResultType() {
         return null;
     }
 
+    @Nullable
     @Override
     public GenericPackage getPackage() {
         return null;
     }
 
+    @NotNull
     @Property(viewable = true, order = 20)
     public String getReturnType() {
         return returnType;
     }
 
+    @Nullable
     @Property(viewable = true, length = PropertyLength.MULTILINE, order = 100)
     public String getDescription() {
         return super.getDescription();
     }
 
-    public void addColumn(CubridProcedureParameter column) {
+    public void addColumn(@NotNull CubridProcedureParameter column) {
         if (this.pro_columns == null) {
             this.pro_columns = new ArrayList<>();
         }
         this.pro_columns.add(column);
     }
 
-    public List<CubridProcedureParameter> getParams(DBRProgressMonitor monitor) throws DBException {
+    @Nullable
+    public List<CubridProcedureParameter> getParams(@NotNull DBRProgressMonitor monitor) throws DBException {
         if (pro_columns == null) {
             loadProcedureColumns(monitor);
             if (pro_columns == null) {
@@ -102,13 +112,14 @@ public class CubridProcedure extends GenericProcedure
         return pro_columns;
     }
 
+    @NotNull
     @Override
-    public String getFullyQualifiedName(DBPEvaluationContext context) {
+    public String getFullyQualifiedName(@NotNull DBPEvaluationContext context) {
         return getName();
     }
 
     @Override
-    public void loadProcedureColumns(DBRProgressMonitor monitor) throws DBException {
+    public void loadProcedureColumns(@NotNull DBRProgressMonitor monitor) throws DBException {
         try (JDBCSession session = DBUtils.openMetaSession(monitor, getDataSource(), "Read procedure parameter")) {
             String stmt = "select * from db_stored_procedure_args where sp_name = '" + getName() + "'";
             try (JDBCPreparedStatement dbStat = session.prepareStatement(stmt)) {

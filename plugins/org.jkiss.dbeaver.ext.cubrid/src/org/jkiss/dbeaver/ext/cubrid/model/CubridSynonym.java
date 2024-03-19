@@ -16,6 +16,8 @@
  */
 package org.jkiss.dbeaver.ext.cubrid.model;
 
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
 import org.jkiss.dbeaver.ext.generic.model.GenericSynonym;
@@ -31,28 +33,36 @@ public class CubridSynonym extends GenericSynonym
     private String targetName;
     private String targetOwner;
 
-    public CubridSynonym(GenericStructContainer container, String name, String description, JDBCResultSet dbResult) {
+    public CubridSynonym(
+            @NotNull GenericStructContainer container,
+            @NotNull String name,
+            @Nullable String description,
+            @NotNull JDBCResultSet dbResult) {
         super(container, name, description);
         this.owner = JDBCUtils.safeGetString(dbResult, "synonym_owner_name");
         this.targetName = JDBCUtils.safeGetString(dbResult, "target_name");
         this.targetOwner = JDBCUtils.safeGetString(dbResult, "target_owner_name");
     }
 
+    @Nullable
     @Override
-    public DBSObject getTargetObject(DBRProgressMonitor monitor) throws DBException {
+    public DBSObject getTargetObject(@NotNull DBRProgressMonitor monitor) throws DBException {
         return null;
     }
 
+    @NotNull
     @Property(viewable = true, order = 2)
     public String getOwner() {
         return owner;
     }
 
+    @NotNull
     @Property(viewable = true, order = 3)
     public String getTargetName() {
         return targetName;
     }
 
+    @NotNull
     @Property(viewable = true, order = 4)
     public String getTargetOwner() {
         return targetOwner;

@@ -16,6 +16,8 @@
  */
 package org.jkiss.dbeaver.ext.cubrid.model;
 
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.ext.generic.model.GenericSequence;
 import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
@@ -28,30 +30,34 @@ public class CubridSequence extends GenericSequence
     private Number cyclic;
     private Number cachedNum;
 
-    public CubridSequence(GenericStructContainer container,
-            String name,
-            String description,
-            Number lastValue,
-            Number minValue,
-            Number maxValue,
-            Number incrementBy,
-            JDBCResultSet dbResult) {
+    public CubridSequence(
+            @NotNull GenericStructContainer container,
+            @NotNull String name,
+            @Nullable String description,
+            @NotNull Number lastValue,
+            @NotNull Number minValue,
+            @NotNull Number maxValue,
+            @NotNull Number incrementBy,
+            @NotNull JDBCResultSet dbResult) {
         super(container, name, description, lastValue, minValue, maxValue, incrementBy);
         this.owner = JDBCUtils.safeGetString(dbResult, "owner.name");
         this.cyclic = JDBCUtils.safeGetInteger(dbResult, "cyclic");
         this.cachedNum = JDBCUtils.safeGetInteger(dbResult, "cached_num");
     }
 
+    @NotNull
     @Property(viewable = true, order = 2)
     public String getOwner() {
         return owner;
     }
 
+    @NotNull
     @Property(viewable = true, order = 7)
     public Number getCyclic() {
         return cyclic;
     }
 
+    @NotNull
     @Property(viewable = true, order = 8)
     public Number getCachedNum() {
         return cachedNum;

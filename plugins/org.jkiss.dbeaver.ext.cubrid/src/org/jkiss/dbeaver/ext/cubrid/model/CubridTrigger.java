@@ -16,6 +16,8 @@
  */
 package org.jkiss.dbeaver.ext.cubrid.model;
 
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableTrigger;
 import org.jkiss.dbeaver.model.DBPEvaluationContext;
@@ -35,7 +37,11 @@ public class CubridTrigger extends GenericTableTrigger
     private Integer actionType;
     private String actionDefinition;
 
-    public CubridTrigger(GenericTableBase container, String name, String description, JDBCResultSet dbResult) {
+    public CubridTrigger(
+            @NotNull GenericTableBase container,
+            @NotNull String name,
+            @Nullable String description,
+            @NotNull JDBCResultSet dbResult) {
         super(container, name, description);
         this.owner = JDBCUtils.safeGetString(dbResult, "owner.name");
         this.targetOwner = JDBCUtils.safeGetString(dbResult, "target_owner_name");
@@ -48,27 +54,32 @@ public class CubridTrigger extends GenericTableTrigger
         this.actionDefinition = JDBCUtils.safeGetString(dbResult, "action_definition");
     }
 
+    @NotNull
     @Property(viewable = true, order = 2)
     public String getOwner() {
         return owner;
     }
 
+    @NotNull
     @Property(viewable = true, order = 3)
     public String getTargetOwner() {
         return targetOwner == null ? this.getTable().getSchema().getName() : targetOwner ;
     }
 
+    @Nullable
     @Override
     @Property(viewable = true, order = 4)
     public CubridTable getTable() {
         return (CubridTable) super.getTable();
     }
 
+    @NotNull
     @Property(viewable = true, order = 10)
     public Number getPriority() {
         return priority;
     }
 
+    @Nullable
     @Property(viewable = true, order = 20)
     public String getEvent() {
         if (event != null) {
@@ -97,21 +108,25 @@ public class CubridTrigger extends GenericTableTrigger
         }
     }
 
+    @Nullable
     @Property(viewable = true, order = 30)
     public String getConditionTime() {
         return getSpecificTime(conditionTime);
     }
 
+    @NotNull
     @Property(viewable = true, order = 40)
     public String getCondition() {
         return condition;
     }
 
+    @Nullable
     @Property(viewable = true, order = 50)
     public String getActionTime() {
         return getSpecificTime(actionTime);
     }
 
+    @Nullable
     @Property(viewable = true, order = 60)
     public String getActionType() {
         if (actionType != null) {
@@ -132,12 +147,14 @@ public class CubridTrigger extends GenericTableTrigger
         }
     }
 
+    @NotNull
     @Property(viewable = true, order = 70)
     public String getActionDefinition() {
         return actionDefinition;
     }
 
-    public String getSpecificTime(Integer time) {
+    @Nullable
+    public String getSpecificTime(@Nullable Integer time) {
         if (time != null) {
             switch (time) {
                 case 1:
@@ -154,6 +171,7 @@ public class CubridTrigger extends GenericTableTrigger
         }
     }
 
+    @NotNull
     @Override
     public String getFullyQualifiedName(DBPEvaluationContext context) {
         return super.getFullyQualifiedName(context);

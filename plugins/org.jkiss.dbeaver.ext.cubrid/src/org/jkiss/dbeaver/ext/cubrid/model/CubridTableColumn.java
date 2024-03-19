@@ -16,6 +16,8 @@
  */
 package org.jkiss.dbeaver.ext.cubrid.model;
 
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
@@ -26,7 +28,7 @@ import org.jkiss.utils.CommonUtils;
 
 public class CubridTableColumn extends GenericTableColumn
 {
-    public CubridTableColumn(GenericTableBase table, JDBCResultSet dbResult) throws DBException {
+    public CubridTableColumn(@NotNull GenericTableBase table, @NotNull JDBCResultSet dbResult) throws DBException {
         super(table);
         if (dbResult != null) {
             typeName = JDBCUtils.safeGetString(dbResult, "Type");
@@ -40,7 +42,7 @@ public class CubridTableColumn extends GenericTableColumn
         }
     }
 
-    public void setDataType(String fullTypeName) throws DBException {
+    public void setDataType(@NotNull String fullTypeName) throws DBException {
         int divPos = fullTypeName.indexOf("(");
         int divPos2 = fullTypeName.indexOf(")", divPos);
         if (divPos == -1 && divPos2 == -1) {
@@ -55,24 +57,28 @@ public class CubridTableColumn extends GenericTableColumn
         }
     }
 
+    @NotNull
     @Override
     @Property(viewable = true, editable = true, updatable = true, order = 20, listProvider = ColumnTypeNameListProvider.class)
     public String getTypeName() {
         return super.getTypeName();
     }
 
+    @Nullable
     @Override
     @Property(viewable = true, editable = true, updatable = true, order = 40)
     public long getMaxLength() {
         return super.getMaxLength();
     }
 
+    @NotNull
     @Override
     @Property(viewable = true, editable = true, updatable = true, order = 50)
     public boolean isRequired() {
         return super.isRequired();
     }
 
+    @Nullable
     @Override
     @Property(viewable = true, editable = true, updatable = true, order = 70)
     public String getDefaultValue() {

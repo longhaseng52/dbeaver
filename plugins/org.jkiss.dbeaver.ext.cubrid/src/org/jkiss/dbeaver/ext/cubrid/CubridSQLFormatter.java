@@ -21,6 +21,8 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.StringTokenizer;
 
+import org.jkiss.code.NotNull;
+
 public class CubridSQLFormatter
 {
     private static final Set<String> BEGIN_CLAUSES = new HashSet<String>();
@@ -49,20 +51,23 @@ public class CubridSQLFormatter
     String token;
     String lcToken;
 
-    public CubridSQLFormatter(String sql) {
+    public CubridSQLFormatter(@NotNull String sql) {
         this.tokens = new StringTokenizer(sql, "()+*/-=<>'`\"[], \n\r\f\t", true);
     }
 
-    public CubridSQLFormatter setInitialString(String initial) {
+    @NotNull
+    public CubridSQLFormatter setInitialString(@NotNull String initial) {
         this.initial = initial;
         return this;
     }
 
-    public CubridSQLFormatter setIndentString(String indent) {
+    @NotNull
+    public CubridSQLFormatter setIndentString(@NotNull String indent) {
         this.indentString = indent;
         return this;
     }
 
+    @NotNull
     public String format() {
         this.result.append(this.initial);
 
@@ -121,7 +126,8 @@ public class CubridSQLFormatter
         return this.result.toString();
     }
 
-    public static String join(String separator, String[] strings) {
+    @NotNull
+    public static String join(@NotNull String separator, @NotNull String[] strings) {
         int length = strings.length;
         if (length == 0) {
             return "";
@@ -306,7 +312,8 @@ public class CubridSQLFormatter
         ++this.parensSinceSelect;
     }
 
-    private static boolean isFunctionName(String tok) {
+    @NotNull
+    private static boolean isFunctionName(@NotNull String tok) {
         char begin = tok.charAt(0);
         boolean isIdentifier = Character.isJavaIdentifierStart(begin) || '"' == begin;
         return isIdentifier
@@ -317,7 +324,8 @@ public class CubridSQLFormatter
                 && !MISC.contains(tok);
     }
 
-    private static boolean isWhitespace(String token) {
+    @NotNull
+    private static boolean isWhitespace(@NotNull String token) {
         return " \n\r\f\t".indexOf(token) >= 0;
     }
 

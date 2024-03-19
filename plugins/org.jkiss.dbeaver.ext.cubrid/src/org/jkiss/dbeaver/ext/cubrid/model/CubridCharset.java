@@ -16,6 +16,8 @@
  */
 package org.jkiss.dbeaver.ext.cubrid.model;
 
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
 import org.jkiss.dbeaver.model.struct.DBSObject;
@@ -31,24 +33,27 @@ public class CubridCharset implements DBSObject
     private CubridDataSource dataSource;
     private List<CubridCollation> collations = new ArrayList<>();
 
-    protected CubridCharset(CubridDataSource dataSource, ResultSet dbResult) {
+    protected CubridCharset(@NotNull CubridDataSource dataSource, @NotNull ResultSet dbResult) {
         this.name = JDBCUtils.safeGetString(dbResult, "charset_name");
         this.dataSource = dataSource;
     }
 
+    @NotNull
     public CubridDataSource getDataSource() {
         return dataSource;
     }
 
-    public void addCollation(CubridCollation collation) {
+    public void addCollation(@NotNull CubridCollation collation) {
         collations.add(collation);
         Collections.sort(collations, DBUtils.nameComparator());
     }
 
+    @NotNull
     public List<CubridCollation> getCollations() {
         return collations;
     }
 
+    @Nullable
     public CubridCollation getDefaultCollation() {
         for (CubridCollation collation : collations) {
             return collation;
@@ -56,6 +61,7 @@ public class CubridCharset implements DBSObject
         return null;
     }
 
+    @Nullable
     public CubridCollation getCollation(String name) {
         for (CubridCollation collation : collations) {
             if (collation.getName().equals(name)) {
@@ -65,20 +71,24 @@ public class CubridCharset implements DBSObject
         return null;
     }
 
+    @NotNull
     public String getName() {
         return name;
     }
 
+    @Nullable
     @Override
     public String getDescription() {
         return null;
     }
 
+    @Nullable
     @Override
     public boolean isPersisted() {
         return false;
     }
 
+    @Nullable
     @Override
     public DBSObject getParentObject() {
         return null;

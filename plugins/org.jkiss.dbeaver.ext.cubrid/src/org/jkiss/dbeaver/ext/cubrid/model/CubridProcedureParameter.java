@@ -16,6 +16,8 @@
  */
 package org.jkiss.dbeaver.ext.cubrid.model;
 
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBPDataSource;
 import org.jkiss.dbeaver.model.meta.Property;
 import org.jkiss.dbeaver.model.struct.DBSTypedObject;
@@ -32,11 +34,11 @@ public class CubridProcedureParameter implements DBSProcedureParameter
     private CubridProcedure procedure;
 
     public CubridProcedureParameter(
-            String procName, 
-            String argName,
-            String dataType,
-            String mode,
-            String comment) {
+            @NotNull String procName,
+            @NotNull String argName,
+            @NotNull String dataType,
+            @NotNull String mode,
+            @Nullable String comment) {
         this.procName = procName;
         this.argName = argName;
         this.dataType = dataType;
@@ -44,53 +46,63 @@ public class CubridProcedureParameter implements DBSProcedureParameter
         this.comment = comment;
     }
 
+    @NotNull
     @Override
     @Property(viewable = true, order = 1)
     public String getName() {
         return procName;
     }
 
+    @NotNull
     @Property(viewable = true, order = 2)
     public String getArgName() {
         return argName;
     }
 
+    @NotNull
     @Property(viewable = true, order = 3)
     public String getDataType() {
         return dataType;
     }
 
+    @NotNull
     @Property(viewable = true, order = 4)
     public String getMode() {
         return mode;
     }
 
+    @Nullable
     @Override
     @Property(viewable = true, order = 5)
     public String getDescription() {
         return comment;
     }
 
+    @Nullable
     @Override
     public DBSTypedObject getParameterType() {
         return null;
     }
 
+    @NotNull
     @Override
     public CubridProcedure getParentObject() {
         return procedure;
     }
 
+    @Nullable
     @Override
     public DBSProcedureParameterKind getParameterKind() {
         return null;
     }
 
+    @Nullable
     @Override
     public DBPDataSource getDataSource() {
         return null;
     }
 
+    @NotNull
     @Override
     public boolean isPersisted() {
         return true;

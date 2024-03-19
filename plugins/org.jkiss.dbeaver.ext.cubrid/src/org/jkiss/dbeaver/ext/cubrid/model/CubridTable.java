@@ -47,7 +47,7 @@ public class CubridTable extends GenericTable
     private boolean reuseOID = true;
 
     public CubridTable(
-            GenericStructContainer container,
+            @NotNull GenericStructContainer container,
             @Nullable String tableName,
             @Nullable String tableType,
             @Nullable JDBCResultSet dbResult) {
@@ -95,19 +95,23 @@ public class CubridTable extends GenericTable
         }
     }
 
+    @NotNull
     @Override
     public CubridDataSource getDataSource() {
         return (CubridDataSource) super.getDataSource();
     }
 
+    @NotNull
     public CubridUser getParent() {
         return (CubridUser) super.getContainer();
     }
 
+    @NotNull
     public boolean supportsTrigger() {
         return ((CubridUser) this.getContainer()).supportsTrigger();
     }
 
+    @Nullable
     public Collection<? extends GenericTableIndex> getIndexes(DBRProgressMonitor monitor)
             throws DBException {
         return getParent().getCubridIndexCache().getObjects(monitor, getContainer(), this);
@@ -135,14 +139,16 @@ public class CubridTable extends GenericTable
         return owner;
     }
 
-    public void setSchema(CubridUser owner) {
+    public void setSchema(@NotNull CubridUser owner) {
         this.owner = owner;
     }
 
+    @NotNull
     public CubridUser getOldSchema() {
         return this.oldOwner;
     }
 
+    @NotNull
     public String getUniqueName() {
         if (getDataSource().getSupportMultiSchema()) {
             return this.getSchema().getName() + "." + this.getName();
@@ -151,40 +157,44 @@ public class CubridTable extends GenericTable
         }
     }
 
+    @NotNull
     @Property(viewable = true, editable = true, updatable = true, listProvider = CollationListProvider.class, order = 9)
     public CubridCollation getCollation() {
         return collation;
     }
 
-    public void setCollation(CubridCollation collation) {
+    public void setCollation(@NotNull CubridCollation collation) {
         this.collation = collation;
     }
 
+    @NotNull
     @Property(viewable = false, editable = true, updatable = true, listProvider = CharsetListProvider.class, order = 8) 
     public CubridCharset getCharset() {
         return charset;
     }
 
-    public void setCharset(CubridCharset charset) {
+    public void setCharset(@NotNull CubridCharset charset) {
         this.charset = charset;
         this.collation = charset == null ? null : charset.getDefaultCollation();
     }
 
+    @NotNull
     @Property(viewable = true, editable = true, order = 52)
     public boolean isReuseOID() {
         return reuseOID;
     }
 
-    public void setReuseOID(boolean reuseOID) {
+    public void setReuseOID(@NotNull boolean reuseOID) {
         this.reuseOID = reuseOID;
     }
 
+    @Nullable
     @Property(viewable = true, editable = true, updatable = true, order = 10)
     public Integer getAutoIncrement() {
         return autoIncrement == null ? 0 : autoIncrement;
     }
 
-    public void setAutoIncrement(Integer autoIncrement) {
+    public void setAutoIncrement(@NotNull Integer autoIncrement) {
         this.autoIncrement = autoIncrement;
     }
 
@@ -198,6 +208,7 @@ public class CubridTable extends GenericTable
         }
     }
 
+    @NotNull
     @Override
     public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException {
         getParent().getCubridIndexCache().clearObjectCache(this);
@@ -206,39 +217,45 @@ public class CubridTable extends GenericTable
 
     public static class OwnerListProvider implements IPropertyValueListProvider<CubridTable>
     {
+        @NotNull
         @Override
         public boolean allowCustomValue() {
             return false;
         }
 
+        @NotNull
         @Override
-        public Object[] getPossibleValues(CubridTable object) {
+        public Object[] getPossibleValues(@NotNull CubridTable object) {
             return object.getDataSource().getSchemas().toArray();
         }
     }
 
     public static class CharsetListProvider implements IPropertyValueListProvider<CubridTable>
     {
+        @NotNull
         @Override
         public boolean allowCustomValue() {
             return false;
         }
 
+        @NotNull
         @Override
-        public Object[] getPossibleValues(CubridTable object) {
+        public Object[] getPossibleValues(@NotNull CubridTable object) {
             return object.getDataSource().getCharsets().toArray();
         }
     }
 
     public static class CollationListProvider implements IPropertyValueListProvider<CubridTable>
     {
+        @NotNull
         @Override
         public boolean allowCustomValue() {
             return false;
         }
 
+        @NotNull
         @Override
-        public Object[] getPossibleValues(CubridTable object) {
+        public Object[] getPossibleValues(@NotNull CubridTable object) {
             return object.charset.getCollations().toArray();
         }
     }
