@@ -29,9 +29,12 @@ import org.jkiss.dbeaver.model.dpi.DPIContainer;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
+import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
+import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCObjectCache;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.struct.DBSDataType;
+import org.jkiss.dbeaver.model.struct.DBSObject;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -47,6 +50,7 @@ public class CubridDataSource extends GenericDataSource
     private boolean supportMultiSchema;
     private ArrayList<CubridCharset> charsets;
     private Map<String, CubridCollation> collations;
+    private final CubridServerCache serverCache;
 
     public CubridDataSource(
             @NotNull DBRProgressMonitor monitor,
@@ -55,6 +59,7 @@ public class CubridDataSource extends GenericDataSource
             throws DBException {
         super(monitor, container, metaModel, new CubridSQLDialect());
         this.metaModel = new CubridMetaModel();
+        this.serverCache = new CubridServerCache();
     }
 
     @DPIContainer
@@ -108,6 +113,21 @@ public class CubridDataSource extends GenericDataSource
     @NotNull
     public CubridCollation getCollation(String name) {
         return collations.get(name);
+    }
+
+    @Nullable
+    public List<CubridServer> getCubridServers(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return serverCache.getAllObjects(monitor, this);
+    }
+
+    @NotNull
+    public CubridServer getCubridServer(@NotNull DBRProgressMonitor monitor, @Nullable String name) throws DBException {
+        return serverCache.getObject(monitor, this, name);
+    }
+
+    @NotNull
+    public boolean supportsServer() {
+        return getSupportMultiSchema();
     }
 
     @NotNull
@@ -180,6 +200,14 @@ public class CubridDataSource extends GenericDataSource
     }
 
     @NotNull
+    @Override
+    public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException {
+        super.refreshObject(monitor);
+        serverCache.clearCache();
+        return this;
+    }
+
+    @NotNull
     public boolean getSupportMultiSchema() {
         return this.supportMultiSchema;
     }
@@ -192,5 +220,20 @@ public class CubridDataSource extends GenericDataSource
     @Override
     public boolean splitProceduresAndFunctions() {
         return true;
+    }
+
+    public class CubridServerCache extends JDBCObjectCache<CubridDataSource, CubridServer> {
+        @NotNull
+        @Override
+        protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, @NotNull CubridDataSource container) throws SQLException {
+            String sql = "select * from db_server";
+            final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
+            return dbStat;
+        }
+
+        @Nullable
+        @Override
+        protected CubridServer fetchObject(@NotNull JDBCSession session, @NotNull CubridDataSource container, @NotNull JDBCResultSet dbResult) throws SQLException, DBException {
+            return new CubridServer(container, dbResult);        }
     }
 }
