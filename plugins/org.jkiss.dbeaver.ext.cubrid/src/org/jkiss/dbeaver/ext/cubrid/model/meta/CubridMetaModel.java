@@ -71,7 +71,7 @@ public class CubridMetaModel extends GenericMetaModel
                 while (dbResult.next()) {
                     String name = JDBCUtils.safeGetStringTrimmed(dbResult, CubridConstants.NAME);
                     String description = JDBCUtils.safeGetStringTrimmed(dbResult, CubridConstants.COMMENT);
-                    CubridUser user = new CubridUser(dataSource, name, description);
+                    CubridUser user = new CubridUser(dataSource, name, description, dbResult, null);
                     users.add(user);
 	            }
             }
@@ -291,64 +291,66 @@ public class CubridMetaModel extends GenericMetaModel
     }
 
     @NotNull
-    @Override
-    public JDBCStatement prepareTableTriggersLoadStatement(
-            @NotNull JDBCSession session,
-            @NotNull GenericStructContainer container,
-            @Nullable GenericTableBase table)
-            throws SQLException {
-        String sql = "select t1.*, t2.*, owner.name from db_trigger t1 join db_trig t2 \n"
-                + "on t1.name = t2.trigger_name where owner.name = ? \n"
-                + (table != null ? "and target_class_name = ?" : "");
-        final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
-        dbStat.setString(1, container.getName());
-        if (table != null) {
-            dbStat.setString(2, table.getName());
-        }
-        return dbStat;
-    }
-
-    @Nullable
-    @Override
-    public CubridTrigger createTableTriggerImpl(
-            @NotNull JDBCSession session,
-            @NotNull GenericStructContainer container,
-            @Nullable GenericTableBase table,
-            @Nullable String triggerName,
-            @NotNull JDBCResultSet dbResult)
-            throws DBException {
-        String name = JDBCUtils.safeGetString(dbResult, CubridConstants.NAME);
-        String description = JDBCUtils.safeGetString(dbResult, CubridConstants.COMMENT);
-        return new CubridTrigger(table, name, description, dbResult);
-    }
-
-    @NotNull
-    @Override
-    public JDBCStatement prepareContainerTriggersLoadStatement(
+    public JDBCStatement prepareCubridTriggersLoadStatement(
             @NotNull JDBCSession session,
             @NotNull GenericStructContainer container)
+//            @Nullable GenericTableBase table)
             throws SQLException {
         String sql = "select t1.*, t2.*, owner.name from db_trigger t1 join db_trig t2 \n"
                 + "on t1.name = t2.trigger_name where owner.name = ? \n";
+//                + (table != null ? "and target_class_name = ?" : "");
         final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
         dbStat.setString(1, container.getName());
+        String a = container.getName();
+//        if (table != null) {
+//            dbStat.setString(2, table.getName());
+//        }
         return dbStat;
     }
 
     @Nullable
-    @Override
-    public CubridTrigger createContainerTriggerImpl(
+    public CubridTrigger createCubridTriggerImpl(
+            @NotNull JDBCSession session,
             @NotNull GenericStructContainer container,
+//            @Nullable GenericTableBase table,
+//            @Nullable String triggerName,
             @NotNull JDBCResultSet dbResult)
             throws DBException {
         String name = JDBCUtils.safeGetString(dbResult, CubridConstants.NAME);
-        String description = JDBCUtils.safeGetString(dbResult, CubridConstants.COMMENT);
         String tableName = JDBCUtils.safeGetString(dbResult, "target_class_name");
-        String owner = JDBCUtils.safeGetString(dbResult, "target_owner_name");
-        DBRProgressMonitor monitor = dbResult.getSession().getProgressMonitor();
-        CubridTable cubridTable = (CubridTable) container.getDataSource().findTable(monitor, null, owner, tableName);
-        return new CubridTrigger(cubridTable, name, description, dbResult);
+      String owner = JDBCUtils.safeGetString(dbResult, "target_owner_name");
+      DBRProgressMonitor monitor = dbResult.getSession().getProgressMonitor();
+      CubridTable table = (CubridTable) container.getDataSource().findTable(monitor, null, owner, tableName);
+        return new CubridTrigger(table, name, dbResult);
     }
+
+//    @NotNull
+//    @Override
+//    public JDBCStatement prepareContainerTriggersLoadStatement(
+//            @NotNull JDBCSession session,
+//            @NotNull GenericStructContainer container)
+//            throws SQLException {
+//        String sql = "select t1.*, t2.*, owner.name from db_trigger t1 join db_trig t2 \n"
+//                + "on t1.name = t2.trigger_name where owner.name = ? \n";
+//        final JDBCPreparedStatement dbStat = session.prepareStatement(sql);
+//        dbStat.setString(1, container.getName());
+//        return dbStat;
+//    }
+
+//    @Nullable
+//    @Override
+//    public CubridTrigger createContainerTriggerImpl(
+//            @NotNull GenericStructContainer container,
+//            @NotNull JDBCResultSet dbResult)
+//            throws DBException {
+//        String name = JDBCUtils.safeGetString(dbResult, CubridConstants.NAME);
+////        String description = JDBCUtils.safeGetString(dbResult, CubridConstants.COMMENT);
+//        String tableName = JDBCUtils.safeGetString(dbResult, "target_class_name");
+//        String owner = JDBCUtils.safeGetString(dbResult, "target_owner_name");
+//        DBRProgressMonitor monitor = dbResult.getSession().getProgressMonitor();
+//        CubridTable cubridTable = (CubridTable) container.getDataSource().findTable(monitor, null, owner, tableName);
+//        return new CubridTableTrigger(cubridTable, name, dbResult);
+//    }
 
     @Override
     public void loadProcedures(

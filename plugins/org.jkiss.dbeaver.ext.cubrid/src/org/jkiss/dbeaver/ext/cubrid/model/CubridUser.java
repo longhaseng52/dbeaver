@@ -20,9 +20,13 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.ext.cubrid.CubridConstants;
+import org.jkiss.dbeaver.ext.cubrid.model.CubridTable.OwnerListProvider;
+import org.jkiss.dbeaver.ext.cubrid.model.meta.CubridMetaModel;
 import org.jkiss.dbeaver.ext.generic.model.GenericDataSource;
+import org.jkiss.dbeaver.ext.generic.model.GenericObjectContainer;
 import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
 import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
+import org.jkiss.dbeaver.ext.generic.model.GenericSynonym;
 import org.jkiss.dbeaver.ext.generic.model.GenericTable;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
@@ -30,6 +34,8 @@ import org.jkiss.dbeaver.ext.generic.model.GenericTableIndex;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableIndexColumn;
 import org.jkiss.dbeaver.ext.generic.model.GenericView;
 import org.jkiss.dbeaver.ext.generic.model.TableCache;
+import org.jkiss.dbeaver.model.DBPNamedObject2;
+import org.jkiss.dbeaver.model.DBPSaveableObject;
 import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
@@ -38,7 +44,11 @@ import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCConstants;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
 import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCCompositeCache;
+import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCObjectCache;
+import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCObjectWithParentCache;
+import org.jkiss.dbeaver.model.meta.IPropertyValueListProvider;
 import org.jkiss.dbeaver.model.meta.Property;
+import org.jkiss.dbeaver.model.meta.PropertyLength;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
 import org.jkiss.utils.CommonUtils;
@@ -46,36 +56,158 @@ import org.jkiss.utils.CommonUtils;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
-public class CubridUser extends GenericSchema
+public class CubridUser extends GenericSchema implements DBPNamedObject2, DBPSaveableObject
 {
     private String name;
-    private String comment;
+    private String description;
+    private String password;
+    private boolean addGroup;
+    private boolean persisted;
+    private String group;
+    private List<GenericSchema> schemas;
+//    private CubridUser allGroups;
+    private List<String> allGroups = new ArrayList<>();
+    private List<String> groups = new ArrayList<>();
     private final CubridIndexCache cubridIndexCache;
+    private final CubridTriggerCache cubridTriggerCache;
+    private List<GenericSchema> groupRefs;
+
 
     public CubridUser(
             @NotNull GenericDataSource dataSource,
             @NotNull String schemaName,
-            @Nullable String comment) {
+            @Nullable String description,
+            @Nullable JDBCResultSet dbResult,
+            DBRProgressMonitor monitor) {
         super(dataSource, null, schemaName);
         this.name = schemaName;
-        this.comment = comment;
+        this.description = description;
+//        this.allGroups = this;
+        this.persisted = dbResult != null;
         this.cubridIndexCache = new CubridIndexCache(this.getTableCache());
+//        this.cubridTriggerCache = new CubridTriggerCache(this.getTableCache());
+        this.cubridTriggerCache = new CubridTriggerCache();
+
+        if(dbResult != null) {
+	        String sql = "select t.groups.name from db_user join table(groups) as t(groups) where name = ?";
+	        try (JDBCPreparedStatement dbStat = dbResult.getSession().prepareStatement(sql)) {
+	            dbStat.setString(1, name);
+	            try (JDBCResultSet result = dbStat.executeQuery()) {
+	                while (result.next()) {
+	                    groups.add(JDBCUtils.safeGetString(result, "groups.name"));
+	                }
+	                group = String.join(", ", groups);
+	            }
+	        } catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }
+        
+        try {
+			this.groupRefs = ((CubridDataSource) dataSource).getCubridUsers(monitor);
+		} catch (DBException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        for (GenericSchema col : CommonUtils.safeCollection(groupRefs)) {
+            this.allGroups.add(col.getName());
+        }
+//        try (JDBCPreparedStatement dbStat = dbResult.getSession().prepareStatement("SELECT name from db_user;")) {
+//            try (JDBCResultSet result = dbStat.executeQuery()) {
+//                while (result.next()) {
+//                    allGroups.add(JDBCUtils.safeGetString(result, "name"));
+//                }
+//            }
+//        }
+////        this.schemas = dataSource.getSchemas();
+////        System.out.println(schemas);
+// catch (SQLException e) {
+//	// TODO Auto-generated catch block
+//	e.printStackTrace();
+//}
     }
 
     @NotNull
-    @Property(viewable = true, order = 1)
+    @Override
+    public boolean isPersisted() {
+        return persisted;
+    }
+
+    @Override
+    public void setPersisted(@NotNull boolean persisted) {
+        this.persisted = persisted;
+    }
+
+    @NotNull
+    @Property(viewable = true, editable = true, order = 1)
     public String getName() {
         return name;
     }
 
-    @Nullable
-    @Property(viewable = true, order = 2)
-    public String getComment() {
-        return comment;
+    public void setName(@NotNull String name) {
+    	this.name = name;
     }
+
+    @NotNull
+    public boolean isPasswordEditable() {
+        String currentUser = getDataSource().getContainer().getConnectionConfiguration().getUserName().toUpperCase();
+        return currentUser.equals("DBA") || currentUser.equals(getName().toUpperCase());
+    }
+
+    @Nullable
+    @Property(viewable = true, order = 2, editable = true, updatableExpr = "object.passwordEditable")
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(@Nullable String newPassword) {
+        this.password = newPassword;
+    }
+
+    @Nullable
+    @Property(viewable = true, length = PropertyLength.MULTILINE, order = 10, editable = true, updatable = true)
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(@Nullable String description) {
+        this.description = description;
+    }
+
+    @Nullable
+    @Property(viewable = true, order = 4, editable = true)
+    public String getGroups() {
+        return group;
+    }
+
+    public void setGroups(String group) {
+    	this.group = group;
+    }
+    
+//    @Property(viewable = true, order = 5, editable = true, updatable = true)
+//    public boolean getAddGroup() {
+//    	return addGroup;
+//    }
+//
+//    public void setAddGroup(boolean addGroup) {
+//    	this.addGroup = addGroup;
+//    }
+//
+//    @Property(viewable = true, order = 6, editable = true, updatable = true, listProvider = GroupListProvider.class)
+//    public String getAllGroup() {
+////    	System.out.println(getDataSource().getSchemas());
+////    	for (GenericSchema schema : getDataSource().getSchemas()) {
+////    		if (!schema.getName().equals("DBA")) {
+////    			allGroups.add(schema.getName());
+////    		}
+////    	}
+//    	return addGroup ? group : null;
+//    }
 
     @NotNull
     public boolean supportsSystemTable() {
@@ -113,6 +245,9 @@ public class CubridUser extends GenericSchema
         return cubridIndexCache;
     }
 
+    public CubridTriggerCache getCubridTriggerCache() {
+    	return cubridTriggerCache;
+    }
     @Nullable
     @Override
     public List<CubridTable> getPhysicalTables(@NotNull DBRProgressMonitor monitor) throws DBException {
@@ -168,6 +303,26 @@ public class CubridUser extends GenericSchema
             indexes.addAll(table.getIndexes(monitor));
         }
         return indexes;
+    }
+
+	@Nullable
+    public Collection<CubridTrigger> getCubridTriggers(@NotNull DBRProgressMonitor monitor)
+            throws DBException {
+        return getCubridTriggerCache().getAllObjects(monitor, this);
+    }
+
+    public static class GroupListProvider implements IPropertyValueListProvider<CubridUser>
+    {
+        @Override
+        public boolean allowCustomValue() {
+            return false;
+        }
+
+        @NotNull
+        @Override
+        public Object[] getPossibleValues(@NotNull CubridUser object) {
+            return object.allGroups.toArray();
+        }
     }
 
     public class CubridTableCache extends TableCache
@@ -286,4 +441,41 @@ public class CubridUser extends GenericSchema
             object.setColumns(children);
         }
     }
+    
+//    static class CubridTriggerCache extends JDBCObjectWithParentCache<GenericStructContainer, GenericTableBase, CubridTrigger> {
+//
+//    	CubridTriggerCache(TableCache tableCache) {
+//            super(tableCache, GenericTableBase.class, "OWNER", "TRIGGER_NAME");
+//        }
+//
+//		@Override
+//		protected JDBCStatement prepareObjectsStatement(JDBCSession session, GenericStructContainer owner,
+//				GenericTableBase tableBase) throws SQLException {
+//			return ((CubridMetaModel) owner.getDataSource().getMetaModel()).prepareCubridTriggersLoadStatement(session, owner, tableBase);
+//
+//		}
+//
+//		@Override
+//		protected CubridTrigger fetchObject(JDBCSession session, GenericStructContainer owner,
+//				GenericTableBase tableBase, String childName, JDBCResultSet resultSet) throws SQLException, DBException {
+//			// TODO Auto-generated method stub
+//			return ((CubridMetaModel) owner.getDataSource().getMetaModel()).createCubridTriggerImpl(session, owner, tableBase, childName, resultSet);
+//		}
+//    }
+    
+    class CubridTriggerCache extends JDBCObjectCache<GenericObjectContainer, CubridTrigger> {
+
+        @NotNull
+        @Override
+        protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, @NotNull GenericObjectContainer container) throws SQLException {
+            return ((CubridMetaModel) container.getDataSource().getMetaModel()).prepareCubridTriggersLoadStatement(session, container);
+        }
+
+        @Nullable
+        @Override
+        protected CubridTrigger fetchObject(@NotNull JDBCSession session, @NotNull GenericObjectContainer container, @NotNull JDBCResultSet resultSet) throws SQLException, DBException {
+            return ((CubridMetaModel) container.getDataSource().getMetaModel()).createCubridTriggerImpl(session, container, resultSet);
+        }
+    }
+ 
 }

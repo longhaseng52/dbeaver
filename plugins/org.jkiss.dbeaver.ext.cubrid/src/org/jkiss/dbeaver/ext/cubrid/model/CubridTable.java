@@ -20,10 +20,14 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.ext.cubrid.CubridConstants;
+import org.jkiss.dbeaver.ext.cubrid.model.meta.CubridMetaModel;
 import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
 import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
 import org.jkiss.dbeaver.ext.generic.model.GenericTable;
+import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableIndex;
+import org.jkiss.dbeaver.ext.generic.model.GenericTrigger;
+import org.jkiss.dbeaver.ext.generic.model.TableCache;
 import org.jkiss.dbeaver.model.DBPEvaluationContext;
 import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
@@ -32,12 +36,15 @@ import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
 import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCObjectCache;
+import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCObjectWithParentCache;
+import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCStructCache;
 import org.jkiss.dbeaver.model.meta.IPropertyValueListProvider;
 import org.jkiss.dbeaver.model.meta.Property;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.struct.DBSObject;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -95,6 +102,23 @@ public class CubridTable extends GenericTable
     public Collection<? extends GenericTableIndex> getIndexes(@NotNull DBRProgressMonitor monitor)
             throws DBException {
         return getParent().getCubridIndexCache().getObjects(monitor, getContainer(), this);
+    }
+
+	@Nullable
+    public Collection<CubridTrigger> getCubridTriggers(@NotNull DBRProgressMonitor monitor)
+            throws DBException {
+		List<CubridTrigger> triggers = new ArrayList<>();
+        for (CubridTrigger trigger : getParent().getCubridTriggerCache().getAllObjects(monitor, owner)) {
+        	String a = trigger.getTable().getName();
+        	String b = this.getName();
+        	String c = trigger.getOwner();
+        	String d = this.owner.getName();
+            if (trigger.getTable().getName().equals(this.getName()) && trigger.getOwner().equals(this.owner.getName())) {
+                triggers.add(trigger);
+            }
+        }
+        return triggers;
+//        return getParent().getCubridTriggerCache().getAllObjects(monitor, owner);
     }
 
     @SuppressWarnings("unchecked")
@@ -185,6 +209,7 @@ public class CubridTable extends GenericTable
     @Override
     public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException {
         getParent().getCubridIndexCache().clearObjectCache(this);
+        getParent().getCubridTriggerCache().clearCache();
         return super.refreshObject(monitor);
     }
 
@@ -234,7 +259,6 @@ public class CubridTable extends GenericTable
         }
             
     }
-
 
     public static class CharsetListProvider implements IPropertyValueListProvider<CubridTable>
     {
