@@ -16,44 +16,49 @@
  */
 package org.jkiss.dbeaver.ext.cubrid.model;
 
+import java.util.Arrays;
+
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
 import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTable;
+import org.jkiss.dbeaver.model.meta.PropertyLength;
 import org.jkiss.dbeaver.model.struct.rdb.DBSTablePartition;
 
 public class CubridPartition extends CubridTable implements DBSTablePartition {
 
-    private final CubridTable parentTable;
-    private final String expression;
-    private final Integer[] expressionValues;
-    private final String comment;
+    private CubridTable table;
+    private String partitionType;
+    private String partitionKey;
+    private String partitionValues;
+    private String description;
+
     public CubridPartition(
         @NotNull CubridTable table,
         @NotNull String name,
         @NotNull String type,
-        @NotNull JDBCResultSet dbResult
-    ) {
-        super(table.getContainer(), name, type,dbResult);
-        this.parentTable = table;
-        expression = JDBCUtils.safeGetString(dbResult, "partition_expr");
-        expressionValues = (Integer[]) JDBCUtils.safeGetObject(dbResult, "partition_values");
-        comment = JDBCUtils.safeGetString(dbResult, "comment");
+        @NotNull JDBCResultSet dbResult) {
+        super(table.getContainer(), name, type, dbResult);
+        this.table = table;
+        this.partitionKey = JDBCUtils.safeGetString(dbResult, "partition_expr");
+        this.partitionValues = Arrays.toString((Object[]) JDBCUtils.safeGetObject(dbResult, "partition_values"));
+        this.description = JDBCUtils.safeGetString(dbResult, "comment");
     }
 
-    @Override 
-    public DBSTable getParentTable() {
-        return this.parentTable;
+    @Override
+    public CubridTable getParentTable() {
+        return this.table;
     }
+
     @Override 
     public boolean isSubPartition(){
         return false;
     }
-    
+
     @Override 
-    public DBSTablePartition getPartitionParent(){
+    public DBSTablePartition getPartitionParent() {
         return null;
     }
     
@@ -61,51 +66,74 @@ public class CubridPartition extends CubridTable implements DBSTablePartition {
     @Override
     @Property(viewable = true, order = 2)
     public String getTableType() {
-        return super.getTableType();
-        
+        return partitionType != null ? partitionType : super.getTableType();
     }
     
-    @NotNull
-    @Property(viewable = true, order = 5)
-    public String getExpression() {
-        return expression;
+    public void setTableType(String type) {
+        this.partitionType = type;
     }
-    
-    @NotNull
-    @Property(viewable = true, order = 6)
-    public Integer[] getExpressionValues() {
-        return expressionValues;
+
+    @Property(viewable = true, editable = true, order = 5)
+    public String getPartitionKey() {
+        return partitionKey;
     }
-    
-    @Nullable
-    @Override
-    @Property(viewable = true, order = 100)
+
+    public void setPartitionKey(String partitionKey) {
+        this.partitionKey = partitionKey;
+    }
+
+    @Property(viewable = true, editable = true, order = 6)
+    public String getPartitionValues() {
+        return partitionValues;
+    }
+
+    public void setPartitionValues(String partitionValues) {
+        this.partitionValues = partitionValues;
+    }
+
+    @Property(viewable = true, editable = true, length = PropertyLength.MULTILINE, order = 100)
     public String getDescription() {
-        return comment;
-        
+        return description;
     }
-    
+
+    @Override
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    @Override
+    @Property(hidden = true)
+    public boolean isPartitioned() {
+        return super.isPartitioned();
+    }
+
+    @Override
+    @Property(hidden = true)
+    public GenericSchema getSchema() {
+        return super.getSchema();
+    }
+
     @NotNull
     @Override
     @Property(hidden = true)
     public CubridCollation getCollation() {
         return super.getCollation();
     }
-    
+
     @NotNull
     @Override
     @Property(hidden = true)
     public boolean isReuseOID() {
         return super.isReuseOID();
     }
-    
+
     @Nullable
     @Override
     @Property(hidden = true)
     public Integer getAutoIncrement() {
         return super.getAutoIncrement();
     }
-    
+
     @NotNull
     @Override
     @Property(hidden = true) 

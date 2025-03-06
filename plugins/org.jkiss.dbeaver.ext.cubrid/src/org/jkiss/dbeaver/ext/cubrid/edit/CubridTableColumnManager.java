@@ -78,10 +78,11 @@ public class CubridTableColumnManager extends GenericTableColumnManager implemen
         column.setDefaultValue(null);
         column.setAutoIncrement(false);
         column.setPersisted(false);
+        column.setOrdinalPosition(table.getCachedAttributes().size() + 1);
         return column;
     }
 
-	@NotNull
+    @NotNull
     @Override
     public StringBuilder getNestedDeclaration(
             @NotNull DBRProgressMonitor monitor,

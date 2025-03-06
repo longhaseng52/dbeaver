@@ -29,4 +29,6 @@ public class CubridMessages extends NLS {
     public static String dialog_struct_create_procedure_container;
     public static String dialog_struct_create_procedure_label_name;
     public static String dialog_struct_create_procedure_combo_type;
+    public static String dialog_struct_partition_title;
+
 }

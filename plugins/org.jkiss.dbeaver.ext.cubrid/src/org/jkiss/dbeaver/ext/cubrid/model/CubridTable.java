@@ -48,6 +48,7 @@ public class CubridTable extends GenericTable
     private CubridCollation collation;
     private Integer autoIncrement;
     private boolean reuseOID = true;
+    private boolean partitioned = false;
 
     public CubridTable(
             @NotNull GenericStructContainer container,
@@ -62,6 +63,7 @@ public class CubridTable extends GenericTable
             this.reuseOID = (JDBCUtils.safeGetString(dbResult, CubridConstants.REUSE_OID)).equals("YES");
             collationName = JDBCUtils.safeGetString(dbResult, CubridConstants.COLLATION);
             autoIncrement = JDBCUtils.safeGetInteger(dbResult, CubridConstants.AUTO_INCREMENT_VAL);
+            partitioned = (JDBCUtils.safeGetString(dbResult, "partitioned")).equals("YES");
             if (type != null) {
                 this.setSystem(type.equals("YES"));
             }
@@ -79,7 +81,7 @@ public class CubridTable extends GenericTable
     @Override
     @Property(viewable = true, editable = true, updatable = true, order = 1)
     public String getName() {
-        return super.getName().toLowerCase();
+        return super.getName() == null ? null : super.getName().toLowerCase();
     }
 
     @NotNull
@@ -110,10 +112,13 @@ public class CubridTable extends GenericTable
             throws DBException {
         return (List<CubridTableColumn>) super.getAttributes(monitor);
     }
-    
+
+    public PartitionCache getPartitionCache() {
+        return partitionCache;
+    }
+
     @NotNull
     public Collection<CubridPartition> getPartitions(@NotNull DBRProgressMonitor monitor) throws DBException {
-
         return partitionCache.getAllObjects(monitor, this);
     }
 
@@ -173,6 +178,15 @@ public class CubridTable extends GenericTable
         this.reuseOID = reuseOID;
     }
 
+    @Property(viewable = true, updatableExpr = "object.partitioned", order = 53)
+    public boolean isPartitioned() {
+        return partitioned;
+    }
+
+    public void setPartitioned(boolean partitioned) {
+        this.partitioned = partitioned;
+    }
+
     @Nullable
     @Property(viewable = true, editable = true, updatable = true, order = 10)
     public Integer getAutoIncrement() {
@@ -197,6 +211,7 @@ public class CubridTable extends GenericTable
     @Override
     public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException {
         getParent().getCubridIndexCache().clearObjectCache(this);
+        getPartitionCache().clearCache();
         return super.refreshObject(monitor);
     }
 
@@ -214,7 +229,7 @@ public class CubridTable extends GenericTable
         }
     }
     
-    static class PartitionCache extends JDBCObjectCache<CubridTable, CubridPartition> {
+    public static class PartitionCache extends JDBCObjectCache<CubridTable, CubridPartition> {
 
 
         @Override

@@ -19,6 +19,7 @@ package org.jkiss.dbeaver.ext.cubrid.edit;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import org.jkiss.dbeaver.ext.cubrid.model.CubridPartition;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTable;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTableColumn;
 import org.jkiss.dbeaver.ext.generic.edit.GenericTableManager;
@@ -34,6 +35,7 @@ import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.sql.SQLUtils;
 import org.jkiss.dbeaver.model.struct.DBSObject;
+import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collection;
@@ -44,14 +46,10 @@ public class CubridTableManager extends GenericTableManager implements DBEObject
 {
     private static final Class<? extends DBSObject>[] CHILD_TYPES = CommonUtils.array(
             CubridTableColumn.class,
+            CubridPartition.class,
             GenericUniqueKey.class,
             GenericTableForeignKey.class,
             GenericTableIndex.class);
-
-    @Override
-    public boolean canCreateObject(@NotNull Object container) {
-        return !(container instanceof CubridTable);
-    }
 
     @NotNull
     @Override
@@ -105,6 +103,15 @@ public class CubridTableManager extends GenericTableManager implements DBEObject
         }
         if ((!alter && table.getDescription() != null) || command.hasProperty("description")) {
             query.append("COMMENT = ").append(SQLUtils.quoteString(table, CommonUtils.notEmpty(table.getDescription()))).append(suffix);
+        }
+      //Removing Partition
+        if (command.hasProperty("partitioned") && !table.isPartitioned()) {
+            if (DBWorkbench.getPlatformUI().confirmAction(
+                  "Partition Warning",
+                  "When changing the table type, data is physically moved between tables, "
+                  + "so it takes time to change depending on the amount of stored records. Do you want to continue?")) {
+                query.append("REMOVE PARTITIONING").append(suffix);
+            }
         }
         query.deleteCharAt(query.length() - 1);
     }
