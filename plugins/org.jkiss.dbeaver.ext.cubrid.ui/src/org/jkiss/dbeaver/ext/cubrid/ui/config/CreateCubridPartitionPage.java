@@ -1,37 +1,49 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.jkiss.dbeaver.ext.cubrid.ui.config;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.dbeaver.DBException;
+import org.jkiss.dbeaver.ext.cubrid.CubridConstants;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridPartition;
-import org.jkiss.dbeaver.ext.cubrid.model.CubridTable;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTable.PartitionCache;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTableColumn;
-import org.jkiss.dbeaver.ext.cubrid.model.CubridUser.CubridTableCache;
 import org.jkiss.dbeaver.ext.cubrid.ui.internal.CubridMessages;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.model.DBPDataKind;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.ui.UIUtils;
 import org.jkiss.dbeaver.ui.editors.object.struct.BaseObjectEditPage;
 import org.jkiss.utils.CommonUtils;
 
 public class CreateCubridPartitionPage extends BaseObjectEditPage {
 
-    private String name;
+    private String partitionName;
     private CubridPartition partition;
-    private String type = "RANGE";
+    private String partitionType = "RANGE";
     private String partitionKey;
     private List<CubridTableColumn> columns = new ArrayList<>();
     private DBRProgressMonitor monitor;
@@ -45,16 +57,16 @@ public class CreateCubridPartitionPage extends BaseObjectEditPage {
     }
 
     @Override
-    public DBSObject getObject() {
-        return null;
+    public CubridPartition getObject() {
+        return partition;
     }
 
-    public String getName() {
-        return name;
+    public String getPartitionName() {
+        return partitionName;
     }
 
-    public String getType() {
-        return type;
+    public String getPartitionType() {
+        return partitionType;
     }
 
     public String getPartitionKey() {
@@ -71,146 +83,127 @@ public class CreateCubridPartitionPage extends BaseObjectEditPage {
 
     @Override
     public boolean isPageComplete() {
-        return !CommonUtils.isEmpty(name) || !CommonUtils.isEmpty(partitionKey) || !CommonUtils.isEmpty(partitionValue);
+        return !(CommonUtils.isEmpty(partitionName) || CommonUtils.isEmpty(partitionKey) || CommonUtils.isEmpty(partitionValue));
     }
 
     @Override
     public Control createPageContents(Composite parent) {
         Composite propsGroup = new Composite(parent, SWT.NONE);
         propsGroup.setLayout(new GridLayout(2, false));
-        GridData gd = new GridData(GridData.FILL_HORIZONTAL);
-        propsGroup.setLayoutData(gd);
-        CubridTable partitionParent = partition.getParentTable();
+        propsGroup.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-        CubridTableCache tableCache = (CubridTableCache) partition.getParentTable().getContainer().getTableCache();
-        List<GenericTableBase> tables = tableCache.getCachedObjects();
-        List<CubridPartition> partitions = new ArrayList<>();
-        for (GenericTableBase table : tables) {
-            if (table instanceof CubridPartition) {
-            	if (partitionParent == ((CubridPartition) table).getParentTable()) {
-            	    partitions.add((CubridPartition) table);
-            	}
-            }
-        }
-        CubridPartition partitionFromTableCache = (partitions != null && !partitions.isEmpty()) ? partitions.get(0) : null;
+        //Get List of New Partitions from Table Cache
+        List<CubridPartition> partitions = partition.getPartitionsFromTableCache(partition);
+        CubridPartition newPartition = (!CommonUtils.isEmpty(partitions)) ? partitions.get(0) : null;
 
+        //Get List of Existing Partitions from Partition Cache
         PartitionCache partitionCache = partition.getParentTable().getPartitionCache();
-        CubridPartition partitionFromCache = !partitionCache.getCachedObjects().isEmpty() ? partitionCache.getCachedObjects().get(0) : null;
-	        if (partitionFromCache != null || partitionFromTableCache != null) {
-	        	CubridPartition partition = partitionFromCache != null ? partitionFromCache : partitionFromTableCache;
-                createExistingPartitionFields(propsGroup, partition);
-	        } else {
-	        	createNewPartitionFields(propsGroup);
-	        }
-            
+        CubridPartition oldPartition = !partitionCache.getCachedObjects().isEmpty() ? partitionCache.getCachedObjects().get(0) : null;
+
+        CubridPartition partition = oldPartition != null ? oldPartition : newPartition;
+        int length = partitions.size() + partitionCache.getCacheSize();
+        if (partition != null) {
+            createExistingPartitionFields(propsGroup, partition, length);
+        } else {
+            createNewPartitionFields(propsGroup);
+        }
         return propsGroup;
     }
 
-    private void createExistingPartitionFields(Composite propsGroup, CubridPartition partition) {
+    private void createExistingPartitionFields(Composite propsGroup, CubridPartition partition, int length) {
+        // Partition Type (Read-Only)
     	Combo typeCombo = UIUtils.createLabelCombo(propsGroup, "Partition Type", SWT.DROP_DOWN | SWT.READ_ONLY);
-        typeCombo.add(partition.getTableType());
+        partitionType = partition.getTableType();
+        typeCombo.add(partitionType);
         typeCombo.setText(partition.getTableType());
-        this.type = partition.getTableType();
         typeCombo.setEnabled(false);
 
-        Combo targetCombo = UIUtils.createLabelCombo(propsGroup, "Partition Key", SWT.DROP_DOWN | SWT.READ_ONLY);
-        this.partitionKey = partition.getPartitionKey().replace("[", "").replace("]", "");
-        targetCombo.add(partitionKey);
-        targetCombo.setText(partitionKey);
-        targetCombo.setEnabled(false);
+        // Partition Key (Read-Only)
+        Combo keyCombo = UIUtils.createLabelCombo(propsGroup, "Partition Key", SWT.DROP_DOWN | SWT.READ_ONLY);
+        partitionKey = partition.getPartitionKey().replace("[", "").replace("]", "");
+        keyCombo.add(partitionKey);
+        keyCombo.setText(partitionKey);
+        keyCombo.setEnabled(false);
 
-
+        // Partition Name
         final Text nameText = UIUtils.createLabelText(propsGroup, "Partition Name", null);
-        
-        nameText.addModifyListener(e -> {
-        	name = nameText.getText().trim();
-            updatePageState();
-        });
-        boolean isHash = type.equals("HASH");
-        name = isHash ? "partition_name" : nameText.getText().trim();
+        boolean isHash = "HASH".equals(partitionType);
+        partitionName = isHash ? "p" + length : nameText.getText().trim();
         nameText.setEnabled(!isHash);
-
-        final Text expressionText = UIUtils.createLabelText(propsGroup, "Partition Value", null);
-        expressionText.addModifyListener(e -> {
-            partitionValue = expressionText.getText().trim();
+        nameText.addModifyListener(e -> {
+            partitionName = nameText.getText().trim();
             updatePageState();
         });
 
-        if (!"HASH".equals(type)) {
-	        final Text descText = UIUtils.createLabelText(propsGroup, "Description", null);
-	        descText.addModifyListener(e -> {
-	            description = descText.getText().trim();
-	            updatePageState();
-	        });
-        }
+        // Partition Value
+        final Text valueText = UIUtils.createLabelText(propsGroup, "Partition Value", null);
+        valueText.addModifyListener(e -> {
+            partitionValue = valueText.getText().trim();
+            updatePageState();
+        });
 
+        // Description
+        final Text descText = UIUtils.createLabelText(propsGroup, "Description", null);
+        descText.setEnabled(!isHash);
+        descText.addModifyListener(e -> {
+            description = descText.getText().trim();
+            updatePageState();
+        });
     }
 
     private void createNewPartitionFields(Composite propsGroup) {
+        // Partition Type
     	Combo typeCombo = UIUtils.createLabelCombo(propsGroup, "Partition Type", SWT.DROP_DOWN | SWT.READ_ONLY);
-        typeCombo.add("RANGE");
-        typeCombo.add("LIST");
-        typeCombo.add("HASH");
-        typeCombo.setText(type);
+        Arrays.asList("RANGE", "LIST", "HASH").forEach(typeCombo::add);
+        typeCombo.setText(partitionType);
 
-        Combo targetCombo = UIUtils.createLabelCombo(propsGroup, "Partition Key", SWT.DROP_DOWN | SWT.READ_ONLY);
+        // Partition Key
+        Combo keyCombo = UIUtils.createLabelCombo(propsGroup, "Partition Key", SWT.DROP_DOWN | SWT.READ_ONLY);
         try {
             columns = (List<CubridTableColumn>) this.partition.getParentTable().getAttributes(monitor);
-            for(CubridTableColumn column : columns) {
-                targetCombo.add(column.getName());
-            }
-        } catch (DBException e1) {
-            e1.printStackTrace();
+            columns.forEach(col -> keyCombo.add(col.getName()));
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(
+                CubridMessages.error_loading_columns_title,
+                CubridMessages.error_loading_columns_message, e);
+            return;
         }
-
-        targetCombo.addModifyListener(e -> {
-            partitionKey = targetCombo.getText().trim();
-
-            CubridTableColumn column = null;
-            for (CubridTableColumn col : columns) {
-                if (col.getName().equals(partitionKey)) {
-                    column = col;
-                    break;
-                }
-            }
-            if (type.equals("RANGE") && column.getDataKind() != DBPDataKind.NUMERIC) {
-                MessageDialog.openWarning(
-                        new Shell(),
-                        "Partition Warning",
-                        "You cannot create a partition range with a non-numeric partition key.\nPlease select a different partition key."
-                    );
-            } else if (type.equals("LIST") && column.getDataKind() != DBPDataKind.STRING) {
-                MessageDialog.openWarning(
-                        new Shell(),
-                        "Partition Warning",
-                        "You cannot create a partition list with a non-string partition key.\nPlease select a different partition key."
-                    );
+        keyCombo.addModifyListener(e -> {
+            partitionKey = keyCombo.getText().trim();
+            CubridTableColumn column = columns.stream().filter(col -> col.getName().equals(partitionKey)).findFirst().orElse(null);
+            if (column != null && !Arrays.asList(CubridConstants.PARTITION_KEY_SUPPORT).contains(column.getTypeName())) {
+                DBWorkbench.getPlatformUI().showWarningMessageBox(
+                    CubridMessages.select_partition_range_key_warning_title,
+                    CubridMessages.select_partition_range_key_warning_message);
             }
             updatePageState();
         });
 
+        // Partition Name
         final Text nameText = UIUtils.createLabelText(propsGroup, "Partition Name", null);
         nameText.addModifyListener(e -> {
-            name = nameText.getText().trim();
+            partitionName = nameText.getText().trim();
             updatePageState();
         });
 
-        final Text expressionText = UIUtils.createLabelText(propsGroup, "Partition Value", null);
-        expressionText.addModifyListener(e -> {
-            partitionValue = expressionText.getText().trim();
+        // Partition Key
+        final Text valueText = UIUtils.createLabelText(propsGroup, "Partition Value", null);
+        valueText.addModifyListener(e -> {
+            partitionValue = valueText.getText().trim();
             updatePageState();
         });
 
+        // Description
         final Text descText = UIUtils.createLabelText(propsGroup, "Description", null);
         descText.addModifyListener(e -> {
             description = descText.getText().trim();
             updatePageState();
         });
-    
+
         typeCombo.addModifyListener(e -> {
-            type = typeCombo.getText().trim();
-            boolean isHash = type.equals("HASH");
-            name = "partition_name";
+            partitionType = typeCombo.getText().trim();
+            boolean isHash = "HASH".equals(partitionType);
+            partitionName = "p0";
             nameText.setEnabled(!isHash);
             descText.setEnabled(!isHash);
             updatePageState();

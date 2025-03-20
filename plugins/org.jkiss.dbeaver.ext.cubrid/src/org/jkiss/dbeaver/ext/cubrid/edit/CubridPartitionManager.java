@@ -1,9 +1,21 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.jkiss.dbeaver.ext.cubrid.edit;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -11,14 +23,15 @@ import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridPartition;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTable;
-import org.jkiss.dbeaver.ext.cubrid.model.CubridTable.PartitionCache;
-import org.jkiss.dbeaver.ext.cubrid.model.CubridUser.CubridTableCache;
+import org.jkiss.dbeaver.ext.cubrid.model.CubridTableColumn;
+import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
+import org.jkiss.dbeaver.model.DBPDataKind;
 import org.jkiss.dbeaver.model.edit.DBECommandContext;
 import org.jkiss.dbeaver.model.edit.DBEPersistAction;
 import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
 import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
+import org.jkiss.dbeaver.model.impl.sql.edit.SQLStructEditor;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.sql.SQLUtils;
 import org.jkiss.utils.CommonUtils;
@@ -41,112 +54,110 @@ public class CubridPartitionManager extends CubridTableManager {
     }
 
     @Override
+    public SQLStructEditor<GenericTableBase, GenericStructContainer>.StructCreateCommand makeCreateCommand(
+            GenericTableBase object,
+            Map<String, Object> options) {
+        StructCreateCommand createCommand = super.makeCreateCommand(object, options);
+        createCommand.setIgnoreNestedCommands(true);
+        return createCommand;
+    }
+
+    @Override
     protected void addStructObjectCreateActions(
             DBRProgressMonitor monitor,
             DBCExecutionContext executionContext,
             List<DBEPersistAction> actions,
             StructCreateCommand command,
-            Map<String, Object> options) throws DBException {
-    	CubridPartition currentPartition = (CubridPartition) command.getObject();
-    	CubridTableCache tableCache = (CubridTableCache) this.getObjectsCache(currentPartition);
-        List<GenericTableBase> tables = tableCache.getCachedObjects();
-
-        PartitionCache partitionCache = currentPartition.getParentTable().getPartitionCache();
-        int cachePartitionsSize = partitionCache.getCachedObjects().size();
-        CubridPartition partitionFromCache = !partitionCache.getCachedObjects().isEmpty() ? partitionCache.getCachedObjects().get(0) : null;
-
-        CubridTable partitionParent = currentPartition.getParentTable();
-        List<CubridPartition> partitions = new ArrayList<>();
-        for (GenericTableBase table : tables) {
-            if (table instanceof CubridPartition) {
-            	if (partitionParent == ((CubridPartition) table).getParentTable()) {
-            	    partitions.add((CubridPartition) table);
-            	}
-            }
-        }
-        partitions = partitions.subList(cachePartitionsSize, partitions.size());
-
-        CubridPartition firstPartition = partitions.get(0);
-    	String type = currentPartition.getTableType();
+            Map<String, Object> options)
+            throws DBException {
         StringBuilder query = new StringBuilder();
+        CubridPartition currentPartition = (CubridPartition) command.getObject();
+        List<CubridPartition> partitions = currentPartition.getPartitionsFromTableCache(currentPartition);
+        CubridPartition firstPartition = (!CommonUtils.isEmpty(partitions)) ? partitions.get(0) : null;
 
-        query.append("ALTER TABLE ").append(currentPartition.getParent()).append(".").append(currentPartition.getParentTable().getName());
-        boolean isPartitioned = currentPartition.getParentTable().isPartitioned();
-        if (isPartitioned) {
+        CubridTable parentTable = currentPartition.getParentTable();
+        CubridTableColumn column = (CubridTableColumn) parentTable.getAttribute(monitor, currentPartition.getPartitionKey());
+        String type = currentPartition.getTableType();
+
+        query.append("ALTER TABLE ").append(parentTable.getUniqueName());
+        boolean isPartitioned = parentTable.isPartitioned();
+        if (isPartitioned || ("HASH".equals(type)) && firstPartition != currentPartition) {
             query.append(" ADD PARTITION (");
         } else {
-        	query.append(" PARTITION BY ").append(type).append(" (").append(currentPartition.getPartitionKey()).append(") (");
+            query.append(" PARTITION BY ").append(type).append(" (").append(currentPartition.getPartitionKey()).append(") (");
         }
 
-        if ("HASH".equals(type)) {
-        	query.deleteCharAt(query.length() - 1);
-            query.append("PARTITIONS ").append(currentPartition.getPartitionValues());
-	        actions.add( 0, new SQLDatabasePersistAction(ModelMessages.model_jdbc_create_new_table, query.toString()) );
-
-        }
-        else {
-            if (firstPartition == currentPartition || partitionFromCache == currentPartition) {
-	        switch (type) {
-	            case "RANGE":
-                    sortedPartition(partitions);
-	            	for (CubridPartition partition : partitions) {
-	            		query.append("\n\tPARTITION ").append(partition.getName()).append(" VALUES LESS THAN ")
-	            		.append("MAXVALUE".equals(partition.getPartitionValues()) ? "MAXVALUE" : "(" + partition.getPartitionValues() + ")")
-	                    .append(partition.getDescription() == null ? "" : 
-	            	        " COMMENT " + SQLUtils.quoteString(partition, CommonUtils.notEmpty(partition.getDescription())))
-	            	    .append(",");
-	            	}
-	            	query.deleteCharAt(query.length() - 1);
-	            	query.append("\n)");
-	                break;
-	            case "LIST":
-	            	for (CubridPartition partition : partitions) {
-		                query.append("\n\tPARTITION ").append(partition.getName()).append(" VALUES IN ")
-		                .append("(" + "'" + String.join("', '", partition.getPartitionValues().split("\\s*,\\s*")) + "'" + ")")
-		                .append(partition.getDescription() == null ? "" : 
-	            	        " COMMENT " + SQLUtils.quoteString(partition, CommonUtils.notEmpty(partition.getDescription())))
-	            	    .append(",");
-	            	}
-	            	query.deleteCharAt(query.length() - 1);
-	            	query.append("\n)");
-	                break;
-	            case "HASH":
-	            	query.deleteCharAt(query.length() - 1);
-	                query.append("PARTITIONS ").append(currentPartition.getPartitionValues());
-	                break;
-	            }
-
-	            actions.add( 0, new SQLDatabasePersistAction(ModelMessages.model_jdbc_create_new_table, query.toString()) );
+        if ("RANGE".equals(type)) {
+            if (firstPartition == currentPartition) {
+                sortedPartition(partitions);
+                renderRangePartitions(partitions, column, query);
+                actions.add( 0, new SQLDatabasePersistAction("Create Partition", query.toString()));
             }
+        } else if ("LIST".equals(type)) {
+            if (firstPartition == currentPartition) {
+                renderListPartitions(partitions, column, query);
+                actions.add( 0, new SQLDatabasePersistAction("Create Partition", query.toString()) );
+            }
+        } else if ("HASH".equals(type)) {
+            query.deleteCharAt(query.length() - 1);
+            query.append("PARTITIONS ").append(currentPartition.getPartitionValues());
+            actions.add( 0, new SQLDatabasePersistAction("Create Partition", query.toString()));
         }
     }
 
-    public void sortedPartition(List<CubridPartition> partitions) {
-        Collections.sort(partitions, new Comparator<CubridPartition>() {
-            @Override
-            public int compare(CubridPartition p1, CubridPartition p2) {
-            	String value1 = p1.getPartitionValues();
-                String value2 = p2.getPartitionValues();
+    private void renderRangePartitions(List<CubridPartition> partitions, CubridTableColumn column, StringBuilder query) {
+        for (CubridPartition partition : partitions) {
+            String partitionValues = CommonUtils.notEmpty(partition.getPartitionValues());
+            query.append("\n\tPARTITION ").append(partition.getName()).append(" VALUES LESS THAN ");
 
-                boolean isP1Numeric = isNumeric(value1);
-                boolean isP2Numeric = isNumeric(value2);
-                
-                if (isP1Numeric && isP2Numeric) {
-                    return Integer.compare(Integer.parseInt(value1), Integer.parseInt(value2));
-                }
-
-                if (isP1Numeric) {
-                    return -1;
-                } else if (isP2Numeric) {
-                    return 1;
-                }
-
-                return value1.compareTo(value2);
+            if ("MAXVALUE".equalsIgnoreCase(partitionValues)) {
+                query.append("MAXVALUE");
+            } else {
+                query.append("(").append(DBPDataKind.NUMERIC == column.getDataKind() ?
+                    partitionValues : SQLUtils.quoteString(partition, partitionValues))
+                .append(")");
             }
-            
+            query.append(CommonUtils.isEmpty(partition.getDescription()) ? "" :
+                " COMMENT " + SQLUtils.quoteString(partition, CommonUtils.notEmpty(partition.getDescription())));
+            query.append(",");
+        }
+        query.deleteCharAt(query.length() - 1).append("\n)");
+    }
+
+    private void renderListPartitions(List<CubridPartition> partitions, CubridTableColumn column, StringBuilder query) {
+        for (CubridPartition partition : partitions) {
+            String[] partitionValues = partition.getPartitionValues().split("\\s*,\\s*");
+            query.append("\n\tPARTITION ").append(partition.getName()).append(" VALUES IN ");
+
+            if (DBPDataKind.NUMERIC == column.getDataKind()) {
+                query.append("(").append(String.join(", ", partitionValues)).append(")");
+            } else {
+                query.append("('").append(String.join("', '", partitionValues)).append("')");
+            }
+            query.append(CommonUtils.isEmpty(partition.getDescription()) ? "" :
+                " COMMENT " + SQLUtils.quoteString(partition, CommonUtils.notEmpty(partition.getDescription())));
+            query.append(",");
+        }
+        query.deleteCharAt(query.length() - 1).append("\n)");
+    }
+
+    private void sortedPartition(List<CubridPartition> partitions) {
+        partitions.sort((p1, p2) -> {
+            String val1 = p1.getPartitionValues();
+            String val2 = p2.getPartitionValues();
+
+            boolean isNum1 = isNumeric(val1);
+            boolean isNum2 = isNumeric(val2);
+
+            if (isNum1 && isNum2) {
+                return Integer.compare(Integer.parseInt(val1), Integer.parseInt(val2));
+            }
+            if (isNum1) return -1;
+            if (isNum2) return 1;
+            return val1.compareTo(val2);
         });
     }
-    
+
     private static boolean isNumeric(String str) {
         try {
             Integer.parseInt(str);
@@ -164,17 +175,23 @@ public class CubridPartitionManager extends CubridTableManager {
             @NotNull ObjectDeleteCommand command,
             @NotNull Map<String, Object> options) {
         CubridPartition partition = (CubridPartition) command.getObject();
-        actions.add(new SQLDatabasePersistAction("Drop Partition",
-                "ALTER TABLE " + partition.getParent().getName() + "." + partition.getParentTable().getName()
-                + " DROP PARTITION " + partition.getName()));
+        if ("HASH".equals(partition.getTableType())) {
+            actions.add(new SQLDatabasePersistAction("Drop Partition",
+                    "ALTER TABLE " + partition.getParentTable().getUniqueName()
+                    + " COALESCE PARTITION 1"));
+        } else {
+	        actions.add(new SQLDatabasePersistAction("Drop Partition",
+	                "ALTER TABLE " + partition.getParentTable().getUniqueName()
+	                + " DROP PARTITION " + partition.getName()));
+        }
     }
 
     @Override
-    protected void appendTableModifiers(
-            @NotNull DBRProgressMonitor monitor,
-            @NotNull GenericTableBase genericTable,
-            @NotNull NestedObjectCommand command,
-            @NotNull StringBuilder query,
-            @NotNull boolean alter) {
+    public void renameObject(
+            @NotNull DBECommandContext commandContext,
+            @NotNull GenericTableBase object,
+            @NotNull Map<String, Object> options,
+            @NotNull String newName)
+            throws DBException {
     }
 }

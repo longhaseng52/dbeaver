@@ -211,7 +211,7 @@ public class CubridTable extends GenericTable
     @Override
     public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException {
         getParent().getCubridIndexCache().clearObjectCache(this);
-        getPartitionCache().clearCache();
+        getContainer().getTableCache().clearCache();
         return super.refreshObject(monitor);
     }
 
@@ -231,7 +231,6 @@ public class CubridTable extends GenericTable
     
     public static class PartitionCache extends JDBCObjectCache<CubridTable, CubridPartition> {
 
-
         @Override
         protected JDBCStatement prepareObjectsStatement(@NotNull JDBCSession session, @NotNull CubridTable table) throws SQLException {
            
@@ -247,17 +246,16 @@ public class CubridTable extends GenericTable
             
             return dbStat;
         }
-    
+
         @Override
         protected CubridPartition fetchObject(
             @NotNull JDBCSession session,
             @NotNull CubridTable table,
             @NotNull JDBCResultSet dbResult
         ) throws SQLException, DBException {
-            String partition_class_name = JDBCUtils.safeGetString(dbResult, "partition_class_name");
+            String partition_name = JDBCUtils.safeGetString(dbResult, "partition_name");
             String type = JDBCUtils.safeGetString(dbResult, "partition_type");
-            
-            return new CubridPartition(table, partition_class_name, type, dbResult);
+            return new CubridPartition(table, partition_name, type, dbResult);
         }
             
     }

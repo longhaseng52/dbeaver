@@ -30,5 +30,11 @@ public class CubridMessages extends NLS {
     public static String dialog_struct_create_procedure_label_name;
     public static String dialog_struct_create_procedure_combo_type;
     public static String dialog_struct_partition_title;
+    public static String select_partition_range_key_warning_title;
+    public static String select_partition_range_key_warning_message;
+    public static String error_loading_columns_title;
+    public static String error_loading_columns_message;
+    public static String create_cubrid_partition_warning_title;
+    public static String create_cubrid_partition_warning_message;
 
 }

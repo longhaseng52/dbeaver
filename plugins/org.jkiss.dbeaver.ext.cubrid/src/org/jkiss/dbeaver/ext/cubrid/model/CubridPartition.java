@@ -16,11 +16,15 @@
  */
 package org.jkiss.dbeaver.ext.cubrid.model;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.ext.cubrid.model.CubridUser.CubridTableCache;
 import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
+import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
 import org.jkiss.dbeaver.model.meta.Property;
@@ -39,17 +43,30 @@ public class CubridPartition extends CubridTable implements DBSTablePartition {
         @NotNull CubridTable table,
         @NotNull String name,
         @NotNull String type,
-        @NotNull JDBCResultSet dbResult) {
+        @Nullable JDBCResultSet dbResult) {
         super(table.getContainer(), name, type, dbResult);
         this.table = table;
-        this.partitionKey = JDBCUtils.safeGetString(dbResult, "partition_expr");
-        this.partitionValues = Arrays.toString((Object[]) JDBCUtils.safeGetObject(dbResult, "partition_values"));
-        this.description = JDBCUtils.safeGetString(dbResult, "comment");
+        if (dbResult != null) {
+            this.partitionKey = JDBCUtils.safeGetString(dbResult, "partition_expr").replace("[", "").replace("]", "");
+            if ("RANGE".equals(type)) {
+                Object[] partitions = (Object[]) JDBCUtils.safeGetObject(dbResult, "partition_values");
+                this.partitionValues = partitions[1] == null ? "MAXVALUE" : partitions[1].toString();
+            } else {
+                this.partitionValues = Arrays.toString((Object[]) JDBCUtils.safeGetObject(dbResult, "partition_values"));
+            }
+            this.description = JDBCUtils.safeGetString(dbResult, "comment");
+        }
+    }
+
+    @Override
+    @Property(viewable = true, editable = true, order = 1)
+    public String getName() {
+        return super.getName();
     }
 
     @Override
     public CubridTable getParentTable() {
-        return this.table;
+        return table;
     }
 
     @Override 
@@ -73,7 +90,7 @@ public class CubridPartition extends CubridTable implements DBSTablePartition {
         this.partitionType = type;
     }
 
-    @Property(viewable = true, editable = true, order = 5)
+    @Property(viewable = true, order = 5)
     public String getPartitionKey() {
         return partitionKey;
     }
@@ -101,6 +118,19 @@ public class CubridPartition extends CubridTable implements DBSTablePartition {
         this.description = description;
     }
 
+    public List<CubridPartition> getPartitionsFromTableCache(CubridPartition partition) {
+        List<CubridPartition> partitions = new ArrayList<>();
+        CubridTableCache tableCache = (CubridTableCache) getParentTable().getContainer().getTableCache();
+        CubridTable partitionParent = partition.getParentTable();
+        for (GenericTableBase table : tableCache.getCachedObjects()) {
+            if (table instanceof CubridPartition part && partitionParent == ((CubridPartition) table).getParentTable()) {
+                partitions.add(part);
+            }
+        }
+        return partitions;
+    }
+
+    // Hidden Properties
     @Override
     @Property(hidden = true)
     public boolean isPartitioned() {
@@ -140,5 +170,5 @@ public class CubridPartition extends CubridTable implements DBSTablePartition {
     public CubridCharset getCharset() {
         return super.getCharset();
     }
-    
+
 }
