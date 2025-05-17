@@ -31,15 +31,15 @@
     </extension>
     
     <extension point="org.jkiss.dbeaver.resultset.panel">
-         <panel
-                id="cubridResult"
-                label="%controls.CubridInfoPanel.label"
-                description="%controls.CubridInfoPanel.description"
-                icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/table.png"
-                default="true"
-                class="org.jkiss.dbeaver.ext.cubrid.ui.controls.CubridInfoPanel">
-             <datasource id="cubrid_jdbc"/>
+        <panel
+            id="cubridResult"
+            label="%controls.CubridInfoPanel.label"
+            description="%controls.CubridInfoPanel.description"
+            icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/table.png"
+            default="true"
+            class="org.jkiss.dbeaver.ext.cubrid.ui.controls.CubridInfoPanel">
+            <datasource id="cubrid"/>
         </panel>
-    </extension>    
-    
+    </extension>
+
 </plugin>
