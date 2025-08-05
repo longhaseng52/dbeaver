@@ -356,7 +356,9 @@ public class CubridPlanNode extends AbstractExecutionPlanNode
                 segments.add(segment);
             }
         }
-        this.name = segments.get(0).split(SEPARATOR)[1].trim();
+        if (segments != null && !segments.isEmpty()) {
+            this.name = segments.get(0).split(SEPARATOR)[1].trim();
+        }
         return segments;
     }
 
